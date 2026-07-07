@@ -1,32 +1,42 @@
 // app/applicant/dashboard/page.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
   ArrowLeft, 
+  ArrowRight,
   Home, 
   FileText, 
   User, 
   Bell, 
   Calendar, 
-  CreditCard, 
   Upload, 
-  File, 
   Edit, 
   AlertCircle,
-  CheckCircle,
   Clock,
-  XCircle,
-  ChevronRight,
   Search,
-  Download
+  Menu,
+  X,
+  ChevronRight
 } from 'lucide-react'
 
 const ApplicantDashboard = () => {
   const [activeTab, setActiveTab] = useState('application')
-  
+  const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
   const notifications = [
     {
       id: 1,
@@ -62,44 +72,40 @@ const ApplicantDashboard = () => {
     }
   ]
 
-  const applications = [
-    {
-      id: 1,
-      title: 'Application 1',
-      date: 'a week ago',
-      status: 'in-progress',
-      steps: [
-        { label: 'Form Submitted', completed: true },
-        { label: 'Document Audit', completed: true },
-        { label: 'Entrance Testing', completed: true },
-        { label: 'Personal interview', completed: false },
-        { label: 'Decision', completed: false }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Application 2',
-      date: '7 months ago',
-      status: 'rejected',
-      steps: [
-        { label: 'Form Submitted', completed: true },
-        { label: 'Document Audit', completed: true },
-        { label: 'Entrance Testing', completed: false },
-        { label: 'Personal interview', completed: false },
-        { label: 'Decision', completed: false }
-      ]
-    }
-  ]
-
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* ===== LEFT PANEL - Wider ===== */}
-      <div className="w-[280px] min-h-screen bg-[#232A42] text-white flex flex-col p-4 flex-shrink-0">
-        {/* Back Button */}
-        <div className="mb-6">
+    <div className="min-h-screen bg-[#E9E9E9] flex flex-col lg:flex-row">
+      {/* ===== MOBILE HEADER ===== */}
+      <div className="lg:hidden bg-[#232A42] text-white p-4 flex items-center justify-between sticky top-0 z-50">
+        <button onClick={() => setIsLeftPanelOpen(true)} className="text-gray-300 hover:text-white">
+          <Menu className="w-5 h-5" />
+        </button>
+        <h2 className="text-sm font-semibold">Dashboard</h2>
+        <button onClick={() => setIsRightPanelOpen(true)} className="text-gray-300 hover:text-white">
+          <Bell className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* ===== LEFT PANEL - Mobile Overlay ===== */}
+      <div className={`
+        lg:w-[280px] lg:min-h-screen lg:relative lg:flex lg:flex-col
+        fixed inset-0 z-40 bg-[#232A42] text-white p-4 flex flex-col
+        transition-transform duration-300 ease-in-out
+        ${isLeftPanelOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
+        {/* Close button for mobile */}
+        <button 
+          onClick={() => setIsLeftPanelOpen(false)}
+          className="lg:hidden absolute top-4 right-4 text-gray-400 hover:text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Back Button - Desktop only */}
+        <div className="hidden lg:block mb-6 mt-6">
           <Link href="/" className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
+            <span className="text-lg">Back</span>
           </Link>
         </div>
 
@@ -122,39 +128,90 @@ const ApplicantDashboard = () => {
         </div>
 
         {/* Send Application Section */}
-        <div className="bg-[#D9D9D9]/15 rounded-lg p-4 mb-6">
-          <div className="text-center">
-            <div className="text-xs text-gray-400 mb-1">Ready to apply?</div>
-            <div className="font-semibold text-sm">Send Application</div>
-            <div className="text-[10px] text-gray-400 mt-1">Complete your profile first</div>
+        <div className="bg-[#042F66] rounded-lg p-4 mb-6 cursor-pointer hover:bg-blue-800 transition-colors">
+          <div className="flex items-center gap-3">
+            <ArrowRight className="w-5 h-5 text-gray-300" />
+            <span className="text-white font-semibold text-sm">Send Application</span>
           </div>
         </div>
 
-        {/* Profile Context Card */}
-        <div className="bg-[#D9D9D9]/30 rounded-lg overflow-hidden flex-1">
-          <div className="bg-[#D9D9D9]/30 px-4 py-2 border-b border-white/10">
+        {/* Profile Context Card - Scrollable */}
+        <div className="bg-[#D9D9D9]/30 rounded-lg overflow-y-auto flex-1 min-h-0">
+          <div className="bg-[#D9D9D9]/30 px-4 py-2 border-b border-white/10 sticky top-0">
             <h3 className="text-xs font-semibold text-gray-300">Profile Context</h3>
           </div>
-          <div className="p-4">
-            <div className="flex flex-col items-center">
-              <div className="relative w-20 h-20 rounded-full bg-gray-600 mb-3 overflow-hidden">
-                <Image
-                  src="/avatar.png"
-                  alt="Profile"
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <h4 className="text-sm font-semibold">John Doe</h4>
-              <p className="text-xs text-gray-400">Applicant</p>
-              <div className="w-full mt-3 space-y-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">Application ID</span>
-                  <span className="text-white">#APP-2024-001</span>
+          <div className="p-3 space-y-3">
+            {/* Application 1 - In Progress */}
+            <div className="bg-white/10 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-sm font-semibold text-white">Application 1</span>
+                  <span className="text-[10px] text-gray-400 ml-2">a week ago</span>
                 </div>
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-400">Status</span>
-                  <span className="text-yellow-400">Pending Review</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-blue-400">In Progress</span>
+                  <div className="w-6 h-6 rounded-full border-2 border-blue-400 flex items-center justify-center animate-spin-slow">
+                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                  </div>
+                </div>
+              </div>
+              <div className="relative">
+                <div className="flex items-center gap-0.5">
+                  {['Form Submitted', 'Document Audit', 'Entrance Testing', 'Personal Interview', 'Decision'].map((step, index) => (
+                    <div key={index} className="flex-1">
+                      <div className={`h-1.5 rounded-full ${index < 3 ? 'bg-green-400' : 'bg-gray-500'}`} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-1">
+                  {['Form Submitted', 'Document Audit', 'Entrance Testing', 'Personal Interview', 'Decision'].map((step, index) => (
+                    <span key={index} className={`text-[7px] ${index < 3 ? 'text-green-300' : 'text-gray-500'}`}>
+                      {step}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-0.5">
+                  {['✓', '✓', '✓', '○', '○'].map((icon, index) => (
+                    <span key={index} className={`text-[8px] ${index < 3 ? 'text-green-400' : 'text-gray-500'}`}>
+                      {icon}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Application 2 - Rejected */}
+            <div className="bg-white/10 rounded-lg p-3 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <span className="text-sm font-semibold text-white">Application 2</span>
+                  <span className="text-[10px] text-gray-400 ml-2">7 months ago</span>
+                </div>
+                <span className="text-xs font-bold text-red-400 bg-red-500/20 px-2.5 py-0.5 rounded-full">
+                  REJECTED
+                </span>
+              </div>
+              <div className="relative">
+                <div className="flex items-center gap-0.5">
+                  {['Form Submitted', 'Document Audit', 'Entrance Testing', 'Personal Interview', 'Decision'].map((step, index) => (
+                    <div key={index} className="flex-1">
+                      <div className={`h-1.5 rounded-full ${index < 2 ? 'bg-green-400' : 'bg-red-400'}`} />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-1">
+                  {['Form Submitted', 'Document Audit', 'Entrance Testing', 'Personal Interview', 'Decision'].map((step, index) => (
+                    <span key={index} className={`text-[7px] ${index < 2 ? 'text-green-300' : 'text-red-400'}`}>
+                      {step}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="transform -rotate-12 opacity-15">
+                  <span className="text-4xl font-black text-red-500 border-4 border-red-500 px-6 py-1 rounded-lg">
+                    REJECTED
+                  </span>
                 </div>
               </div>
             </div>
@@ -162,41 +219,48 @@ const ApplicantDashboard = () => {
         </div>
       </div>
 
-      {/* ===== MID SECTION - 2/3 of screen ===== */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        {/* Header with Search */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative flex-1 max-w-md">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          </div>
-          <div className="flex items-center gap-3 ml-4">
-            <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-              <Image
-                src="/avatar.png"
-                alt="Profile"
-                width={40}
-                height={40}
-                className="object-cover"
+      {/* ===== MID SECTION - Scrollable ===== */}
+      <div className="flex-1 p-4 lg:p-6 overflow-y-auto h-screen lg:h-auto max-h-screen">
+        {/* Header with Search and Profile */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          {/* Search Bar */}
+          <div className="relative w-full sm:max-w-xs">
+            <div className="flex items-center bg-[#D9D9D9] rounded-lg px-3 py-1.5">
+              <Search className="w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search"
+                className="bg-transparent text-gray-700 placeholder-gray-500 text-sm pl-2 pr-4 py-1 focus:outline-none w-full"
               />
             </div>
-            <div>
-              <div className="font-semibold text-sm">John Doe</div>
-              <div className="text-xs text-gray-500">Admin</div>
+          </div>
+          
+          {/* Profile Section - Hidden on mobile (in header) */}
+          <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                <Image
+                  src="/user.png"
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-sm text-gray-800">John Doe</div>
+                <div className="text-xs text-gray-400">Admin</div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* File Upload Area */}
-        <div className="bg-white border-2 border-dashed border-gray-300 rounded-xl p-8 mb-6 text-center">
+        <div className="bg-white border-2 border-gray-300 rounded-xl p-6 lg:p-8 mb-6 text-center">
           <div className="flex flex-col items-center">
             <Upload className="w-12 h-12 text-gray-400 mb-4" />
             <p className="text-gray-600 mb-2">Drag and drop files here</p>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            <button className="bg-[#042F66] text-white px-6 py-2 rounded-lg hover:bg-blue-800 transition-colors">
               Browse Files
             </button>
             <p className="text-xs text-gray-400 mt-3">
@@ -205,107 +269,76 @@ const ApplicantDashboard = () => {
           </div>
         </div>
 
-        {/* Two Column Layout */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Interview Schedule - Left */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-800">Interview Schedule</h3>
-              <button className="text-blue-600 text-sm font-medium hover:text-blue-700">View Schedule</button>
+        {/* Two Column Layout - Responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Interview Schedule */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-[#042F66] px-6 py-3">
+              <h3 className="font-bold text-white text-lg">Interview Schedule</h3>
             </div>
-            <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-              <span>Interview Appointment</span>
-              <button className="text-gray-400 hover:text-gray-600">
-                <Edit className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <div>
-                  <div className="font-semibold text-sm text-gray-800">No Interview Scheduled</div>
-                  <div className="text-xs text-gray-500">Check back later</div>
+            <div className="p-6">
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <span>Interview Appointment</span>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-[#042F66]" />
+                  <div>
+                    <div className="font-semibold text-sm text-gray-800">No Interview Scheduled</div>
+                    <div className="text-xs text-gray-500">Check back later</div>
+                  </div>
                 </div>
               </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button className="bg-[#042F66] text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors text-sm flex-1">
+                  View Schedule
+                </button>
+                <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm flex-1 flex items-center justify-center gap-2">
+                  <Edit className="w-4 h-4" />
+                  Edit Schedule
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-4">
+                You will receive an email notification once your interview date is scheduled.
+              </p>
             </div>
-            <p className="text-xs text-gray-400">
-              You will receive an email notification once your interview date is scheduled.
-            </p>
           </div>
 
-          {/* Application Fee - Right */}
+          {/* Application Fee Card */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-bold text-gray-800 mb-4">Application Fee</h3>
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">Due Processing Fee</span>
-                <span className="font-bold text-gray-800">$50</span>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+            <h3 className="font-extrabold text-center text-gray-800 text-lg mb-1">Application Fee</h3>
+            <p className="text-sm text-center text-gray-500 mb-2">Due Processing Fee</p>
+            <div className="text-[#042F66] text-center font-bold text-4xl mb-4">$50</div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button className="flex-1 bg-[#042F66] text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition-colors text-sm">
                 Pay online
               </button>
-              <button className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+              <button className="flex-1 bg-white text-[#042F66] border-2 border-[#042F66] px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors text-sm">
                 Receipt
               </button>
             </div>
           </div>
         </div>
-
-        {/* Application Status */}
-        <div className="mt-6 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-bold text-gray-800 mb-4">Application Status</h3>
-          <div className="space-y-6">
-            {applications.map((app) => (
-              <div key={app.id} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h4 className="font-semibold text-gray-800">{app.title}</h4>
-                    <p className="text-xs text-gray-400">{app.date}</p>
-                  </div>
-                  <span className={`text-xs font-medium px-3 py-1 rounded-full ${
-                    app.status === 'in-progress' 
-                      ? 'bg-yellow-100 text-yellow-700' 
-                      : 'bg-red-100 text-red-700'
-                  }`}>
-                    {app.status === 'in-progress' ? 'In Progress' : 'REJECTED'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {app.steps.map((step, index) => (
-                    <div key={index} className="flex items-center">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
-                        step.completed 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-gray-100 text-gray-400'
-                      }`}>
-                        {step.completed ? <CheckCircle className="w-4 h-4" /> : index + 1}
-                      </div>
-                      {index < app.steps.length - 1 && (
-                        <div className={`w-8 h-0.5 ${
-                          step.completed ? 'bg-green-300' : 'bg-gray-200'
-                        }`} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 text-xs text-gray-400">
-                  {app.steps.map((step, index) => (
-                    <span key={index} className="text-center w-16 truncate">
-                      {step.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* ===== RIGHT PANEL - Wider with same BG as Left ===== */}
-      <div className="w-[280px] bg-[#232A42] text-white p-4 border-l border-white/10 overflow-y-auto flex-shrink-0">
-        <h3 className="font-bold text-white mb-4">Notifications & Alerts</h3>
+      {/* ===== RIGHT PANEL - Mobile Overlay ===== */}
+      <div className={`
+        lg:w-[280px] lg:min-h-screen lg:relative lg:block
+        fixed inset-0 z-40 bg-[#232A42] text-white p-4 border-l border-white/10
+        transition-transform duration-300 ease-in-out
+        ${isRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
+        lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen
+        overflow-y-auto
+      `}>
+        {/* Close button for mobile */}
+        <button 
+          onClick={() => setIsRightPanelOpen(false)}
+          className="lg:hidden absolute top-4 left-4 text-gray-400 hover:text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h3 className="font-bold text-white mb-4 mt-10 lg:mt-0">Notifications & Alerts</h3>
         <div className="space-y-4">
           {notifications.map((notification) => {
             const Icon = notification.icon
@@ -336,26 +369,18 @@ const ApplicantDashboard = () => {
           })}
         </div>
 
-        {/* Quick Stats */}
-        <div className="mt-6 pt-4 border-t border-white/10">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-300">Documents</span>
-              <span className="font-semibold text-white">3/5</span>
-            </div>
-            <div className="w-full bg-white/10 rounded-full h-1.5">
-              <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '60%' }} />
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-300">Profile</span>
-              <span className="font-semibold text-white">80%</span>
-            </div>
-            <div className="w-full bg-white/10 rounded-full h-1.5">
-              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '80%' }} />
-            </div>
-          </div>
-        </div>
       </div>
+
+      {/* Overlay backdrop for mobile panels */}
+      {(isLeftPanelOpen || isRightPanelOpen) && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-30"
+          onClick={() => {
+            setIsLeftPanelOpen(false)
+            setIsRightPanelOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }
