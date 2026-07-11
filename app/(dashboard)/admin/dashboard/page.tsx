@@ -428,7 +428,7 @@ const AdminDashboard = () => {
         const pendingApplicantsResponse = await databases.listDocuments(
           process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
           process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          [Query.equal('status', 'pending'), Query.limit(1)]
+          [Query.equal('Status', 'pending'), Query.limit(1)]
         )
         // We'll use this for the pending applications count
 
@@ -653,29 +653,6 @@ const AdminDashboard = () => {
             )
           })}
         </div>
-
-        <div className="mt-auto pt-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
-            <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-[#2C3553] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
-              {getAvatarUrl() ? (
-                <img src={getAvatarUrl()!} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                getUserInitials() || <User className="w-4 h-4" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-blue-950 truncate">{getFullName()}</div>
-              <div className="text-xs text-gray-600 truncate">{getRoleDisplay()}</div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* ===== MID SECTION ===== */}
@@ -699,6 +676,29 @@ const AdminDashboard = () => {
               />
             </div>
           </div>
+
+                  <div className="mt-auto pt-4 border-t border-white/10">
+          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
+            <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-[#2C3553] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
+              {getAvatarUrl() ? (
+                <img src={getAvatarUrl()!} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                getUserInitials() || <User className="w-4 h-4" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-blue-950 truncate">{getFullName()}</div>
+              <div className="text-xs text-gray-600 truncate">{getRoleDisplay()}</div>
+            </div>
+            <button
+              onClick={() => {}}
+              className="p-1.5 rounded-lg hover:bg-blue/10 text-gray-400 hover:text-blue-950 transition-colors"
+              title="Profile Settings"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
         </div>
 
         {/* ===== KEY METRICS ===== */}
@@ -706,9 +706,6 @@ const AdminDashboard = () => {
           <StatsCard
             title="Total Enrolled Students"
             value={studentCount.toLocaleString()}
-            icon={<TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
-            trend="+ 5.2 %"
-            trendDirection="up"
           />
           
           <StatsCard
