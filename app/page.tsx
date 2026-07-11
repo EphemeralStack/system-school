@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
 import { arrowForward, informationCircle, close } from 'ionicons/icons'
+import { useAuth } from '@/contexts/auth-context'
 
 // Dynamically import IonIcon with SSR disabled
 const IonIcon = dynamic(
@@ -13,6 +15,8 @@ const IonIcon = dynamic(
 )
 
 const Homepage = () => {
+  const router = useRouter()
+  const { user, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [hoveredCard, setHoveredCard] = useState<string | null>(null)
   const [isInfoOpen, setIsInfoOpen] = useState(false)
@@ -20,6 +24,40 @@ const Homepage = () => {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Check authentication and redirect
+  useEffect(() => {
+    if (!loading && user) {
+      const role = user?.Role?.toLowerCase() || ''
+      
+      // Redirect based on user role
+      switch(role) {
+        case 'admin':
+          router.push('/admin/dashboard')
+          break
+        case 'teacher':
+          router.push('/teacher/dashboard')
+          break
+        case 'student':
+          router.push('/student/dashboard')
+          break
+        case 'applicant':
+          router.push('/applicant/dashboard')
+          break
+        default:
+          // If no specific role, stay on homepage
+          break
+      }
+    }
+  }, [user, loading, router])
+
+  // Lock body scroll while the info modal is open (mobile bottom-sheet style)
+  useEffect(() => {
+    document.body.style.overflow = isInfoOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isInfoOpen])
 
   const toggleInfo = () => {
     setIsInfoOpen(!isInfoOpen)
@@ -39,7 +77,7 @@ const Homepage = () => {
           alt="Admin" 
           width={32} 
           height={32} 
-          className="w-8 h-8 object-contain"
+          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
         />
       ),
       description: 'Manage students, teachers, and school operations',
@@ -58,7 +96,7 @@ const Homepage = () => {
           alt="Teacher" 
           width={32} 
           height={32} 
-          className="w-8 h-8 object-contain"
+          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
         />
       ),
       description: 'Manage classes, assignments, and student progress',
@@ -77,7 +115,7 @@ const Homepage = () => {
           alt="Applicant" 
           width={32} 
           height={32} 
-          className="w-8 h-8 object-contain"
+          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
         />
       ),
       description: 'Submit applications and track admission status',
@@ -96,7 +134,7 @@ const Homepage = () => {
           alt="Student" 
           width={32} 
           height={32} 
-          className="w-8 h-8 object-contain"
+          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
         />
       ),
       description: 'Access courses, grades, and learning resources',
@@ -108,23 +146,27 @@ const Homepage = () => {
     }
   ]
 
-  // Don't render icons until mounted to prevent hydration mismatch
-  if (!mounted) {
+  // Show loading state
+  if (loading || !mounted) {
     return (
-      <div className="min-h-screen relative flex items-center justify-center p-4">
+      <div className="min-h-[100dvh] relative flex items-center justify-center p-4">
         <div className="relative w-full max-w-6xl animate-fade-in z-10">
-          <div className="text-center mb-12">
-            <div className="font-extrabold text-3xl md:text-4xl text-white tracking-wide drop-shadow-lg">
+          <div className="text-center">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+            <div className="font-extrabold text-2xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow-lg px-4">
               StarLight Management Suite
             </div>
+            <p className="text-white/60 text-sm mt-2">Loading...</p>
           </div>
         </div>
       </div>
     )
   }
 
+  // If user is authenticated, they'll be redirected by the useEffect
+  // But we still render the homepage for non-authenticated users
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-4">
+    <div className="min-h-[100dvh] relative flex items-center justify-center p-4 py-8 sm:py-4">
       {/* Background Image with Gradient Overlay */}
       <div className="absolute inset-0">
         <div 
@@ -140,144 +182,162 @@ const Homepage = () => {
 
       {/* Content */}
       <div className="relative w-full max-w-6xl animate-fade-in z-10">
-        {/* Header Section with Info Icon */}
-        <div className="text-center mb-12 relative flex flex-col items-center">
-          {/* Logo at far left */}
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:block">
-            <img 
-              src="/Logo.png" 
-              alt="StarLight Logo" 
-              className="h-20 w-auto object-contain"
-            />
+        {/* Header Section */}
+        <div className="mb-8 sm:mb-10 md:mb-12">
+          <div className="flex items-center justify-between gap-2 mb-3 sm:mb-0">
+            {/* Logo - visible from md up, sits inline at the left */}
+            <div className="hidden md:block flex-shrink-0 w-20">
+              <img 
+                src="/Logo.png" 
+                alt="StarLight Logo" 
+                className="h-16 lg:h-20 w-auto object-contain"
+              />
+            </div>
+
+            {/* Mobile logo */}
+            <div className="md:hidden">
+              <img 
+                src="/Logo.png" 
+                alt="StarLight Logo" 
+                className="h-10 sm:h-12 w-auto object-contain"
+              />
+            </div>
+
+            {/* Spacer to balance the info icon on md+ so title stays centered */}
+            <div className="hidden md:block w-20 flex-shrink-0" aria-hidden="true" />
+
+            {/* Info Icon */}
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={toggleInfo}
+                className="p-2 rounded-lg hover:bg-white/20 active:bg-white/25 transition-colors duration-200 text-white focus:outline-none touch-manipulation"
+                aria-label="System Information"
+              >
+                <IonIcon icon={informationCircle} className="w-6 h-6 sm:w-7 sm:h-7" />
+              </button>
+
+              {/* Info Modal */}
+              {isInfoOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
+                    onClick={closeInfo}
+                  ></div>
+
+                  {/* Info Modal: bottom sheet on mobile, floating card from sm up */}
+                  <div className="
+                    fixed sm:absolute
+                    left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0
+                    bottom-0 sm:bottom-auto
+                    sm:right-0 sm:top-full sm:mt-2
+                    w-full sm:w-96
+                    max-w-full sm:max-w-[calc(100vw-2rem)]
+                    max-h-[85dvh] sm:max-h-none
+                    overflow-y-auto
+                    bg-white/95 backdrop-blur-md
+                    rounded-t-2xl sm:rounded-2xl
+                    shadow-2xl border border-white/20
+                    z-50 animate-slide-down
+                  ">
+                    {/* Close button */}
+                    <button
+                      onClick={closeInfo}
+                      aria-label="Close"
+                      className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors text-gray-400 hover:text-gray-600 z-10 touch-manipulation"
+                    >
+                      <IonIcon icon={close} className="w-5 h-5" />
+                    </button>
+
+                    <div className="p-5 sm:p-6 pt-8">
+                      {/* System Name */}
+                      <h3 className="text-lg sm:text-xl font-bold text-center text-gray-800 mb-1">
+                        StarLight Management Suite
+                      </h3>
+                      <p className="text-center text-gray-500 text-sm mb-4">
+                        School Management System
+                      </p>
+
+                      <div className="border-t border-gray-200 my-4"></div>
+
+                      {/* System Information */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                          <span className="text-gray-600 text-sm flex items-center gap-2">
+                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            Version
+                          </span>
+                          <span className="font-semibold text-gray-800">v2.0.0</span>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                          <span className="text-gray-600 text-sm flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                            Release Date
+                          </span>
+                          <span className="font-semibold text-gray-800">January 2026</span>
+                        </div>
+
+                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                          <span className="text-gray-600 text-sm flex items-center gap-2">
+                            <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+                            License
+                          </span>
+                          <span className="font-semibold text-gray-800">MIT</span>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200 my-4"></div>
+
+                      {/* Developer Information */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
+                        <h4 className="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
+                          <span className="text-blue-600">👨‍💻</span> Developed By
+                        </h4>
+                        <div className="space-y-1">
+                          <p className="text-gray-700 text-sm font-medium">StarLight Technologies Inc.</p>
+                          <p className="text-gray-500 text-xs flex items-center gap-1">
+                            <span>📧</span> contact@starlight.com
+                          </p>
+                          <p className="text-gray-500 text-xs flex items-center gap-1">
+                            <span>📱</span> +1 (555) 123-4567
+                          </p>
+                          <p className="text-gray-500 text-xs flex items-center gap-1">
+                            <span>🌐</span> www.starlight.com
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-gray-200 my-4"></div>
+
+                      {/* Footer info */}
+                      <div className="text-center pb-2 sm:pb-0">
+                        <p className="text-xs text-gray-400">
+                          &copy; {new Date().getFullYear()} StarLight Technologies
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
+                          Built with <span className="text-red-500">❤️</span> for education
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          
-          {/* Info Icon - far right */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2">
-            <button
-              onClick={toggleInfo}
-              className="p-2 rounded-lg hover:bg-white/20 transition-colors duration-200 text-white focus:outline-none"
-              aria-label="System Information"
-            >
-              <IonIcon icon={informationCircle} className="w-7 h-7" />
-            </button>
-          </div>
-          
-          {/* Mobile logo */}
-          <div className="block md:hidden mb-4">
-            <img 
-              src="/Logo.png" 
-              alt="StarLight Logo" 
-              className="h-12 w-auto object-contain mx-auto"
-            />
-          </div>
-          
-          <div>
-            <span className="font-extrabold text-3xl md:text-4xl text-white tracking-wide drop-shadow-lg">
+
+          <div className="text-center">
+            <span className="font-extrabold text-2xl sm:text-3xl md:text-4xl text-white tracking-wide drop-shadow-lg block px-2">
               StarLight Management Suite
             </span>
+            <p className="text-yellow-500 text-sm sm:text-base max-w-2xl mx-auto drop-shadow-md mt-2 px-4">
+              Select your portal to continue accessing your personalized dashboard
+            </p>
           </div>
-          <p className="text-yellow-500 text-base md:text-md max-w-2xl mx-auto drop-shadow-md mt-2">
-            Select your portal to continue accessing your personalized dashboard
-          </p>
-
-          {/* Info Modal */}
-          {isInfoOpen && (
-            <>
-              {/* Backdrop */}
-              <div 
-                className="fixed inset-0 bg-black/50 z-40 backdrop-blur-sm"
-                onClick={closeInfo}
-              ></div>
-              
-              {/* Info Modal */}
-              <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-white/20 z-50 overflow-hidden animate-slide-down">
-                {/* Close button */}
-                <button
-                  onClick={closeInfo}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600 z-10"
-                >
-                  <IonIcon icon={close} className="w-5 h-5" />
-                </button>
-                
-                <div className="p-6 pt-8">
-                  {/* System Name */}
-                  <h3 className="text-xl font-bold text-center text-gray-800 mb-1">
-                    StarLight Management Suite
-                  </h3>
-                  <p className="text-center text-gray-500 text-sm mb-4">
-                    School Management System
-                  </p>
-                  
-                  <div className="border-t border-gray-200 my-4"></div>
-                  
-                  {/* System Information */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-600 text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        Version
-                      </span>
-                      <span className="font-semibold text-gray-800">v2.0.0</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-600 text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                        Release Date
-                      </span>
-                      <span className="font-semibold text-gray-800">January 2026</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-600 text-sm flex items-center gap-2">
-                        <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                        License
-                      </span>
-                      <span className="font-semibold text-gray-800">MIT</span>
-                    </div>
-                    
-                  </div>
-                  
-                  <div className="border-t border-gray-200 my-4"></div>
-                  
-                  {/* Developer Information */}
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
-                      <span className="text-blue-600">👨‍💻</span> Developed By
-                    </h4>
-                    <div className="space-y-1">
-                      <p className="text-gray-700 text-sm font-medium">StarLight Technologies Inc.</p>
-                      <p className="text-gray-500 text-xs flex items-center gap-1">
-                        <span>📧</span> contact@starlight.com
-                      </p>
-                      <p className="text-gray-500 text-xs flex items-center gap-1">
-                        <span>📱</span> +1 (555) 123-4567
-                      </p>
-                      <p className="text-gray-500 text-xs flex items-center gap-1">
-                        <span>🌐</span> www.starlight.com
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-gray-200 my-4"></div>
-                  
-                  {/* Footer info */}
-                  <div className="text-center">
-                    <p className="text-xs text-gray-400">
-                      &copy; {new Date().getFullYear()} StarLight Technologies
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1 flex items-center justify-center gap-1">
-                      Built with <span className="text-red-500">❤️</span> for education
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
-        {/* Portal Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-10 max-w-3xl mx-auto">
+        {/* Portal Cards Grid — always 2 columns from small screens up, so it renders as a clean 2x2 on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-8 sm:mb-10 max-w-3xl mx-auto">
           {portals.map((portal) => (
             <Link
               key={portal.id}
@@ -290,11 +350,13 @@ const Homepage = () => {
                 relative bg-white/90 backdrop-blur-sm rounded-xl p-4 md:p-5 
                 shadow-[0_4px_16px_rgba(0,0,0,0.15)] 
                 hover:shadow-[0_12px_30px_rgba(0,0,0,0.25)] 
+                active:shadow-[0_6px_18px_rgba(0,0,0,0.2)]
                 transition-all duration-300 hover:-translate-y-2 
                 border border-white/20 hover:border-white/40
                 overflow-hidden
-                h-[160px] md:h-[180px]
+                min-h-[150px] sm:min-h-[160px] md:min-h-[180px]
                 flex flex-col
+                touch-manipulation
               `}>
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
                 
@@ -345,25 +407,37 @@ const Homepage = () => {
         </div>
 
         {/* Footer Section */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-md px-8 py-3 rounded-full shadow-lg border border-white/30">
-            <span className="text-gray-700">Don't have an account yet?</span>
-            <Link 
-              href="/signup" 
-              className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline underline-offset-4"
-            >
-              Sign Up
-            </Link>
-            <span className="text-gray-400">•</span>
-            <Link 
-              href="/contact" 
-              className="text-sm text-gray-600 hover:text-gray-800 transition-colors hover:underline underline-offset-4"
-            >
-              Need Help?
-            </Link>
+        <div className="text-center px-2">
+          <div className="inline-flex flex-col sm:flex-row items-center gap-2 sm:gap-3 bg-white/80 backdrop-blur-md px-5 sm:px-8 py-3 rounded-2xl sm:rounded-full shadow-lg border border-white/30 max-w-full">
+            <span className="text-gray-700 text-sm sm:text-base text-center">Don't have an account yet?</span>
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/signup" 
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors hover:underline underline-offset-4 text-sm sm:text-base"
+              >
+                Sign Up
+              </Link>
+              <span className="text-gray-400 hidden sm:inline">•</span>
+              <Link 
+                href="/contact" 
+                className="text-sm text-gray-600 hover:text-gray-800 transition-colors hover:underline underline-offset-4"
+              >
+                Need Help?
+              </Link>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Loading overlay for redirect */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-5 sm:p-6 flex items-center gap-3 max-w-full">
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin flex-shrink-0"></div>
+            <span className="text-gray-700 text-sm sm:text-base">Redirecting...</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
