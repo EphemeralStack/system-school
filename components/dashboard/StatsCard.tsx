@@ -1,8 +1,6 @@
 // components/dashboard/StatsCard.tsx
 'use client'
 
-import { TrendingUp, ArrowRight } from 'lucide-react'
-
 interface StatsCardProps {
   title: string
   value: string | number

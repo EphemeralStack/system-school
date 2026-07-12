@@ -57,6 +57,8 @@ import {
   RbacMatrix, 
   SectionPlaceholder 
 } from '@/components/dashboard'
+import { SeedButton } from '@/components/dashboard/SeedButton'
+import { AddStudentModal } from '@/components/dashboard/AddStudentModal'
 
 // ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
@@ -370,6 +372,7 @@ const AdminDashboard = () => {
   const [studentCount, setStudentCount] = useState(0)
   const [teacherCount, setTeacherCount] = useState(0)
   const [applicantCount, setApplicantCount] = useState(0)
+  const [showAddStudent, setShowAddStudent] = useState(false)
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -394,6 +397,29 @@ const AdminDashboard = () => {
   // Get avatar URL or use initials
   const getAvatarUrl = () => {
     return user?.avatar || null
+  }
+
+  // Handle add student
+  const handleAddStudent = () => {
+    setShowAddStudent(true)
+  }
+
+  // Handle student added successfully
+  const handleStudentAdded = () => {
+    // Refresh student count
+    const fetchCounts = async () => {
+      try {
+        const studentsResponse = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
+          [Query.limit(1)]
+        )
+        setStudentCount(studentsResponse.total)
+      } catch (error) {
+        console.error('Error fetching student count:', error)
+      }
+    }
+    fetchCounts()
   }
 
   // Fetch counts from collections
@@ -653,6 +679,8 @@ const AdminDashboard = () => {
             )
           })}
         </div>
+
+
       </div>
 
       {/* ===== MID SECTION ===== */}
@@ -676,8 +704,7 @@ const AdminDashboard = () => {
               />
             </div>
           </div>
-
-                  <div className="mt-auto pt-4 border-t border-white/10">
+          <div className="mt-auto pt-4 border-t border-white/10">
           <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
             <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-[#2C3553] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
               {getAvatarUrl() ? (
@@ -692,8 +719,8 @@ const AdminDashboard = () => {
             </div>
             <button
               onClick={() => {}}
-              className="p-1.5 rounded-lg hover:bg-blue/10 text-gray-400 hover:text-blue-950 transition-colors"
-              title="Profile Settings"
+              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              title="Logout"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -751,14 +778,28 @@ const AdminDashboard = () => {
 
         {/* ===== SECTION PLACEHOLDERS ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-4">
-          {sectionPlaceholders.map((section) => (
-            <SectionPlaceholder
-              key={section.id}
-              title={section.title}
-              description={section.description}
-              icon={section.icon}
-            />
-          ))}
+          {sectionPlaceholders.map((section) => {
+            if (section.id === 'students') {
+              return (
+                <SectionPlaceholder
+                  key={section.id}
+                  title={section.title}
+                  description={section.description}
+                  icon={section.icon}
+                  onAdd={handleAddStudent}
+                  onManage={() => console.log('Manage students')}
+                />
+              )
+            }
+            return (
+              <SectionPlaceholder
+                key={section.id}
+                title={section.title}
+                description={section.description}
+                icon={section.icon}
+              />
+            )
+          })}
         </div>
       </div>
 
@@ -865,6 +906,16 @@ const AdminDashboard = () => {
             LogoUrl: schoolData?.LogoUrl || '',
             Status: schoolData?.Status || 'active',
           }}
+        />
+      )}
+
+      {/* Add Student Modal */}
+      {showAddStudent && (
+        <AddStudentModal
+          isOpen={showAddStudent}
+          onClose={() => setShowAddStudent(false)}
+          onSuccess={handleStudentAdded}
+          schoolId={schoolData.$id}
         />
       )}
 
