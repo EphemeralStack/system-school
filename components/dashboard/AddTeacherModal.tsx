@@ -1,23 +1,21 @@
-// components/dashboard/AddStudentModal.tsx
+// components/dashboard/AddTeacherModal.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { databases, storage } from '@/lib/appwrite/config'
-import { ID, Query } from 'appwrite'
-import { X, Loader2, User, Mail, Phone, School, BookOpen, Calendar,Lock,UserLock, Check, Image as ImageIcon } from 'lucide-react'
+import { ID } from 'appwrite'
+import { X, Loader2, User, Mail, Phone, School, Calendar, Lock, UserLock, Check, Image as ImageIcon, Briefcase, GraduationCap } from 'lucide-react'
 
-interface AddStudentModalProps {
+interface AddTeacherModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
   schoolId: string
 }
 
-export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStudentModalProps) => {
+export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTeacherModalProps) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [classes, setClasses] = useState<any[]>([])
-  const [loadingClasses, setLoadingClasses] = useState(true)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [formData, setFormData] = useState({
@@ -28,10 +26,9 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
     username: '',
     password: '',
     confirmPassword: '',
-    classId: '',
-    level: '',
-    form: '',
-    enrollmentDate: new Date().toISOString().split('T')[0],
+    qualification: '',
+    subjectSpecialization: '',
+    hireDate: new Date().toISOString().split('T')[0],
     status: 'active',
     avatar: '',
     avatarFileId: '',
@@ -56,27 +53,6 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
     const index = Math.abs(hash) % colors.length
     return colors[index]
   }
-
-  // Fetch classes for dropdown
-  useEffect(() => {
-    const fetchClasses = async () => {
-      if (!schoolId) return
-      try {
-        setLoadingClasses(true)
-        const response = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
-          [Query.equal('schoolId', schoolId)]
-        )
-        setClasses(response.documents)
-      } catch (error) {
-        console.error('Error fetching classes:', error)
-      } finally {
-        setLoadingClasses(false)
-      }
-    }
-    fetchClasses()
-  }, [schoolId])
 
   const handleAvatarUpload = async () => {
     const input = document.createElement('input')
@@ -159,9 +135,6 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
     setLoading(true)
 
     try {
-      // Generate a unique student ID
-      const studentId = `STU-${Date.now().toString().slice(-6)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-
       // 1. Create user in USERS collection
       const userDoc = await databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
@@ -172,23 +145,23 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
           LastName: formData.lastName,
           Email: formData.email,
           Phone: formData.phone || '',
-          Role: 'student',
+          Role: 'teacher',
           avatar: formData.avatar || '',
         }
       )
 
-      // 2. Create student document
+      // 2. Create teacher document with only the specified fields
       await databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
         ID.unique(),
         {
-          userId: userDoc.$id,
           schoolId: schoolId,
-          classId: formData.classId || '',
-          Level: formData.level || '',
-          Form: formData.form || '',
-          EnrollmentDate: formData.enrollmentDate || new Date().toISOString(),
+          userId: userDoc.$id,
+          departmentId: ID.unique(), // Auto-generate department ID
+          HireDate: formData.hireDate || new Date().toISOString(),
+          Qualification: formData.qualification || '',
+          SubjectSpecialization: formData.subjectSpecialization || '',
           Status: formData.status || 'active',
         }
       )
@@ -204,18 +177,17 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
         username: '',
         password: '',
         confirmPassword: '',
-        classId: '',
-        level: '',
-        form: '',
-        enrollmentDate: new Date().toISOString().split('T')[0],
+        qualification: '',
+        subjectSpecialization: '',
+        hireDate: new Date().toISOString().split('T')[0],
         status: 'active',
         avatar: '',
         avatarFileId: '',
       })
       setAvatarPreview(null)
     } catch (error) {
-      console.error('Error adding student:', error)
-      setError(error instanceof Error ? error.message : 'Failed to add student')
+      console.error('Error adding teacher:', error)
+      setError(error instanceof Error ? error.message : 'Failed to add teacher')
     } finally {
       setLoading(false)
     }
@@ -234,7 +206,7 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
       <div className="bg-[#232A42] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#232A42] -mt-4 sm:-mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 z-10">
-          <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">Add New Student</h2>
+          <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">Add New Teacher</h2>
           <button
             onClick={onClose}
             aria-label="Close"
@@ -407,77 +379,59 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Class</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Qualification</label>
               <div className="relative">
-                <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.classId}
-                  onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
-                >
-                  <option value="">Select Class</option>
-                  {loadingClasses ? (
-                    <option disabled>Loading classes...</option>
-                  ) : classes.length === 0 ? (
-                    <option disabled>No classes available</option>
-                  ) : (
-                    classes.map((cls) => (
-                      <option key={cls.$id} value={cls.$id}>
-                        {cls.LevelOrForm} - {cls.Room || 'No Room'}
-                      </option>
-                    ))
-                  )}
-                </select>
+                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.qualification}
+                  onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
+                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  placeholder="e.g., B.Ed, M.A. Education"
+                />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Level</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Subject Specialization</label>
               <div className="relative">
-                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.level}
-                  onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
-                >
-                  <option value="">Select Level</option>
-                  <option value="O-Level">O-Level</option>
-                  <option value="A-Level">A-Level</option>
-                  <option value="Primary">Primary</option>
-                </select>
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={formData.subjectSpecialization}
+                  onChange={(e) => setFormData({ ...formData, subjectSpecialization: e.target.value })}
+                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  placeholder="e.g., Mathematics, Science"
+                />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Form</label>
-              <div className="relative">
-                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.form}
-                  onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
-                >
-                  <option value="">Select Form</option>
-                  <option value="Form 1">Form 1</option>
-                  <option value="Form 2">Form 2</option>
-                  <option value="Form 3">Form 3</option>
-                  <option value="Form 4">Form 4</option>
-                  <option value="Lower Six">Lower Six</option>
-                  <option value="Upper Six">Upper Six</option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Enrollment Date</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Hire Date</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="date"
-                  value={formData.enrollmentDate}
-                  onChange={(e) => setFormData({ ...formData, enrollmentDate: e.target.value })}
+                  value={formData.hireDate}
+                  onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
                   className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
                 />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
+              <div className="relative">
+                <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
+                >
+                  <option value="active">Active</option>
+                  <option value="on_leave">On Leave</option>
+                  <option value="retired">Retired</option>
+                </select>
               </div>
             </div>
           </div>
@@ -503,7 +457,7 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
               ) : (
                 <>
                   <Check className="w-4 h-4" />
-                  Add Student
+                  Add Teacher
                 </>
               )}
             </button>

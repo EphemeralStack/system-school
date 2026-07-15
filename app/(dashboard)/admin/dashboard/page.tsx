@@ -15,6 +15,7 @@ import {
   Bell, 
   AlertCircle,
   Clock,
+  Lock,
   Search,
   Menu,
   X,
@@ -57,8 +58,9 @@ import {
   RbacMatrix, 
   SectionPlaceholder 
 } from '@/components/dashboard'
-import { SeedButton } from '@/components/dashboard/SeedButton'
 import { AddStudentModal } from '@/components/dashboard/AddStudentModal'
+import { AddTeacherModal } from '@/components/dashboard/AddTeacherModal'
+import { AddApplicantModal } from '@/components/dashboard/AddApplicantModal'
 
 // ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
@@ -137,12 +139,6 @@ const sectionPlaceholders = [
     title: 'Classes & Subjects',
     description: 'Create classes, assign subjects, and set up academic structure.',
     icon: Grid
-  },
-  {
-    id: 'students',
-    title: 'Student Management',
-    description: 'Enroll students, track attendance, and manage student records.',
-    icon: Users
   },
   {
     id: 'finance',
@@ -373,6 +369,8 @@ const AdminDashboard = () => {
   const [teacherCount, setTeacherCount] = useState(0)
   const [applicantCount, setApplicantCount] = useState(0)
   const [showAddStudent, setShowAddStudent] = useState(false)
+  const [showAddTeacher, setShowAddTeacher] = useState(false)
+  const [showAddApplicant, setShowAddApplicant] = useState(false)
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -404,6 +402,16 @@ const AdminDashboard = () => {
     setShowAddStudent(true)
   }
 
+  // Handle add teacher
+  const handleAddTeacher = () => {
+    setShowAddTeacher(true)
+  }
+
+  // Handle add applicant
+  const handleAddApplicant = () => {
+    setShowAddApplicant(true)
+  }
+
   // Handle student added successfully
   const handleStudentAdded = () => {
     // Refresh student count
@@ -417,6 +425,42 @@ const AdminDashboard = () => {
         setStudentCount(studentsResponse.total)
       } catch (error) {
         console.error('Error fetching student count:', error)
+      }
+    }
+    fetchCounts()
+  }
+
+  // Handle teacher added successfully
+  const handleTeacherAdded = () => {
+    // Refresh teacher count
+    const fetchCounts = async () => {
+      try {
+        const teachersResponse = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
+          [Query.limit(1)]
+        )
+        setTeacherCount(teachersResponse.total)
+      } catch (error) {
+        console.error('Error fetching teacher count:', error)
+      }
+    }
+    fetchCounts()
+  }
+
+  // Handle applicant added successfully
+  const handleApplicantAdded = () => {
+    // Refresh applicant count
+    const fetchCounts = async () => {
+      try {
+        const applicantsResponse = await databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
+          [Query.limit(1)]
+        )
+        setApplicantCount(applicantsResponse.total)
+      } catch (error) {
+        console.error('Error fetching applicant count:', error)
       }
     }
     fetchCounts()
@@ -733,19 +777,46 @@ const AdminDashboard = () => {
           <StatsCard
             title="Total Enrolled Students"
             value={studentCount.toLocaleString()}
-          />
+          >
+            {/* Add Student Button */}
+            <button
+              onClick={handleAddStudent}
+              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Add Student
+            </button>
+          </StatsCard>
           
           <StatsCard
             title="Total Teachers"
             value={teacherCount.toLocaleString()}
             icon={<User className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
-          />
+          >
+            {/* Add Teacher Button */}
+            <button
+              onClick={handleAddTeacher}
+              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Add Teacher
+            </button>
+          </StatsCard>
 
           <StatsCard
             title="Total Applicants"
             value={applicantCount.toLocaleString()}
             icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />}
-          />
+          >
+            {/* Add Applicant Button */}
+            <button
+              onClick={handleAddApplicant}
+              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              Add Applicant
+            </button>
+          </StatsCard>
 
           <StatsCard
             title="System AI Flag Counter"
@@ -778,28 +849,14 @@ const AdminDashboard = () => {
 
         {/* ===== SECTION PLACEHOLDERS ===== */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-4">
-          {sectionPlaceholders.map((section) => {
-            if (section.id === 'students') {
-              return (
-                <SectionPlaceholder
-                  key={section.id}
-                  title={section.title}
-                  description={section.description}
-                  icon={section.icon}
-                  onAdd={handleAddStudent}
-                  onManage={() => console.log('Manage students')}
-                />
-              )
-            }
-            return (
-              <SectionPlaceholder
-                key={section.id}
-                title={section.title}
-                description={section.description}
-                icon={section.icon}
-              />
-            )
-          })}
+          {sectionPlaceholders.map((section) => (
+            <SectionPlaceholder
+              key={section.id}
+              title={section.title}
+              description={section.description}
+              icon={section.icon}
+            />
+          ))}
         </div>
       </div>
 
@@ -915,6 +972,26 @@ const AdminDashboard = () => {
           isOpen={showAddStudent}
           onClose={() => setShowAddStudent(false)}
           onSuccess={handleStudentAdded}
+          schoolId={schoolData.$id}
+        />
+      )}
+
+      {/* Add Teacher Modal */}
+      {showAddTeacher && (
+        <AddTeacherModal
+          isOpen={showAddTeacher}
+          onClose={() => setShowAddTeacher(false)}
+          onSuccess={handleTeacherAdded}
+          schoolId={schoolData.$id}
+        />
+      )}
+
+      {/* Add Applicant Modal */}
+      {showAddApplicant && (
+        <AddApplicantModal
+          isOpen={showAddApplicant}
+          onClose={() => setShowAddApplicant(false)}
+          onSuccess={handleApplicantAdded}
           schoolId={schoolData.$id}
         />
       )}
