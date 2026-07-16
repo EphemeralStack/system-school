@@ -26,7 +26,7 @@ interface AuthContextType {
   registerTeacher: (data: RegisterData) => Promise<void>
   registerStudent: (data: RegisterData) => Promise<void>
 
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<any>
   logout: () => Promise<void>
   getSchools: () => Promise<any[]>
 }
