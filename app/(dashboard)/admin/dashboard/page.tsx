@@ -2,8 +2,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { AddClassModal } from '@/components/dashboard/AddClassModal'
 import { useAuth } from '@/contexts/auth-context'
 import { databases, storage } from '@/lib/appwrite/config'
 import { ID, Query } from 'appwrite'
@@ -18,6 +20,7 @@ import {
   Lock,
   Search,
   Menu,
+  Eye,
   X,
   Settings,
   Search as SearchIcon,
@@ -124,28 +127,6 @@ const ledgerStatusStyles: Record<string, string> = {
 const rbacMatrixData = [
   { name: 'Dr. Linda Martinez', role: 'TEACHER', email: 'l.martinez@school.edu', classroom: 'Classroom' },
   { name: 'Robert Taylor', role: 'TEACHER', email: 'r.taylor@school.edu', classroom: 'Classroom' },
-]
-
-// ============= SECTION PLACEHOLDERS CONFIG =============
-const sectionPlaceholders = [
-  {
-    id: 'teachers',
-    title: 'Teachers Management',
-    description: 'Add, edit, and manage teachers. Assign subjects and classes.',
-    icon: User
-  },
-  {
-    id: 'classes',
-    title: 'Classes & Subjects',
-    description: 'Create classes, assign subjects, and set up academic structure.',
-    icon: Grid
-  },
-  {
-    id: 'finance',
-    title: 'Financial Management',
-    description: 'Manage fees, payments, and financial records.',
-    icon: DollarSign
-  },
 ]
 
 // ============= SCHOOL SETUP FORM =============
@@ -358,6 +339,7 @@ const SchoolSetupForm = ({ onClose, onSave, initialData }: { onClose: () => void
 
 // ============= MAIN DASHBOARD =============
 const AdminDashboard = () => {
+  const router = useRouter()
   const { user, logout } = useAuth()
   const [activeSection, setActiveSection] = useState('global-config')
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
@@ -368,9 +350,11 @@ const AdminDashboard = () => {
   const [studentCount, setStudentCount] = useState(0)
   const [teacherCount, setTeacherCount] = useState(0)
   const [applicantCount, setApplicantCount] = useState(0)
+  const [classCount, setClassCount] = useState(0)
   const [showAddStudent, setShowAddStudent] = useState(false)
   const [showAddTeacher, setShowAddTeacher] = useState(false)
   const [showAddApplicant, setShowAddApplicant] = useState(false)
+  const [showAddClass, setShowAddClass] = useState(false)
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -412,101 +396,90 @@ const AdminDashboard = () => {
     setShowAddApplicant(true)
   }
 
+  // Handle add class
+  const handleAddClass = () => {
+    setShowAddClass(true)
+  }
+
+  // Handle class added successfully
+  const handleClassAdded = () => {
+    fetchCounts()
+  }
+
   // Handle student added successfully
   const handleStudentAdded = () => {
-    // Refresh student count
-    const fetchCounts = async () => {
-      try {
-        const studentsResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-          [Query.limit(1)]
-        )
-        setStudentCount(studentsResponse.total)
-      } catch (error) {
-        console.error('Error fetching student count:', error)
-      }
-    }
     fetchCounts()
   }
 
   // Handle teacher added successfully
   const handleTeacherAdded = () => {
-    // Refresh teacher count
-    const fetchCounts = async () => {
-      try {
-        const teachersResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
-          [Query.limit(1)]
-        )
-        setTeacherCount(teachersResponse.total)
-      } catch (error) {
-        console.error('Error fetching teacher count:', error)
-      }
-    }
     fetchCounts()
   }
 
   // Handle applicant added successfully
   const handleApplicantAdded = () => {
-    // Refresh applicant count
-    const fetchCounts = async () => {
-      try {
-        const applicantsResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          [Query.limit(1)]
-        )
-        setApplicantCount(applicantsResponse.total)
-      } catch (error) {
-        console.error('Error fetching applicant count:', error)
-      }
-    }
     fetchCounts()
   }
 
-  // Fetch counts from collections
-  useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        // Get total students count
-        const studentsResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-          [Query.limit(1)] // Just to get the count
-        )
-        setStudentCount(studentsResponse.total)
+  // Navigation handlers
+  const handleViewStudents = () => {
+    router.push('/admin/students')
+  }
 
-        // Get total teachers count
-        const teachersResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
-          [Query.limit(1)]
-        )
-        setTeacherCount(teachersResponse.total)
+  const handleViewTeachers = () => {
+    router.push('/admin/teachers')
+  }
 
-        // Get total applicants count
-        const applicantsResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          [Query.limit(1)]
-        )
-        setApplicantCount(applicantsResponse.total)
+  const handleViewApplicants = () => {
+    router.push('/admin/applicants')
+  }
 
-        // Get pending applicants count
-        const pendingApplicantsResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          [Query.equal('Status', 'pending'), Query.limit(1)]
-        )
-        // We'll use this for the pending applications count
+  const handleViewClasses = () => {
+    router.push('/admin/classes')
+  }
 
-      } catch (error) {
-        console.error('Error fetching counts:', error)
-      }
+  // Fetch all counts
+  const fetchCounts = async () => {
+    try {
+      // Get total students count
+      const studentsResponse = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
+        [Query.limit(1)]
+      )
+      setStudentCount(studentsResponse.total)
+
+      // Get total teachers count
+      const teachersResponse = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
+        [Query.limit(1)]
+      )
+      setTeacherCount(teachersResponse.total)
+
+      // Get total applicants count
+      const applicantsResponse = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
+        [Query.limit(1)]
+      )
+      setApplicantCount(applicantsResponse.total)
+
+      // Get total classes count
+      const classesResponse = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
+        [Query.limit(1)]
+      )
+      setClassCount(classesResponse.total)
+
+    } catch (error) {
+      console.error('Error fetching counts:', error)
     }
+  }
 
+  // Fetch counts on mount
+  useEffect(() => {
     fetchCounts()
   }, [])
 
@@ -723,8 +696,6 @@ const AdminDashboard = () => {
             )
           })}
         </div>
-
-
       </div>
 
       {/* ===== MID SECTION ===== */}
@@ -762,7 +733,7 @@ const AdminDashboard = () => {
               <div className="text-xs text-gray-600 truncate">{getRoleDisplay()}</div>
             </div>
             <button
-              onClick={() => {}}
+              onClick={handleLogout}
               className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
               title="Logout"
             >
@@ -772,62 +743,100 @@ const AdminDashboard = () => {
         </div>
         </div>
 
-        {/* ===== KEY METRICS ===== */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        {/* ===== KEY METRICS - 2 Rows x 2 Columns ===== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {/* Students Card */}
           <StatsCard
             title="Total Enrolled Students"
             value={studentCount.toLocaleString()}
+            icon={<User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
           >
-            {/* Add Student Button */}
-            <button
-              onClick={handleAddStudent}
-              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Add Student
-            </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddStudent}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewStudents}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
           </StatsCard>
           
+          {/* Teachers Card */}
           <StatsCard
             title="Total Teachers"
             value={teacherCount.toLocaleString()}
             icon={<User className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
           >
-            {/* Add Teacher Button */}
-            <button
-              onClick={handleAddTeacher}
-              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Add Teacher
-            </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddTeacher}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewTeachers}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
           </StatsCard>
 
+          {/* Applicants Card */}
           <StatsCard
             title="Total Applicants"
             value={applicantCount.toLocaleString()}
             icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />}
           >
-            {/* Add Applicant Button */}
-            <button
-              onClick={handleAddApplicant}
-              className="mt-3 w-full bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 touch-manipulation"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Add Applicant
-            </button>
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddApplicant}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewApplicants}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
           </StatsCard>
 
+          {/* Classes Card */}
           <StatsCard
-            title="System AI Flag Counter"
-            value="23"
-            color="text-red-600"
-            className="border-2 border-red-500"
+            title="Total Classes"
+            value={classCount.toLocaleString()}
+            icon={<School className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />}
           >
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-[10px] sm:text-xs text-gray-500">Need Attention</p>
-              <button className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border-2 border-[#232A42] flex items-center justify-center text-[#232A42] hover:bg-[#232A42] hover:text-white transition-colors flex-shrink-0 touch-manipulation">
-                <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddClass}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewClasses}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
               </button>
             </div>
           </StatsCard>
@@ -846,18 +855,6 @@ const AdminDashboard = () => {
           onShowAll={handleShowAllRbac}
           onEdit={handleRbacEdit}
         />
-
-        {/* ===== SECTION PLACEHOLDERS ===== */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-4">
-          {sectionPlaceholders.map((section) => (
-            <SectionPlaceholder
-              key={section.id}
-              title={section.title}
-              description={section.description}
-              icon={section.icon}
-            />
-          ))}
-        </div>
       </div>
 
       {/* ===== RIGHT PANEL ===== */}
@@ -992,6 +989,16 @@ const AdminDashboard = () => {
           isOpen={showAddApplicant}
           onClose={() => setShowAddApplicant(false)}
           onSuccess={handleApplicantAdded}
+          schoolId={schoolData.$id}
+        />
+      )}
+
+      {/* Add Class Modal */}
+      {showAddClass && (
+        <AddClassModal
+          isOpen={showAddClass}
+          onClose={() => setShowAddClass(false)}
+          onSuccess={handleClassAdded}
           schoolId={schoolData.$id}
         />
       )}
