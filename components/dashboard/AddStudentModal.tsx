@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import { databases, storage } from '@/lib/appwrite/config'
 import { ID, Query } from 'appwrite'
-import { X, Loader2, User, Mail, Phone, School, BookOpen, Calendar,Lock,UserLock, Check, Image as ImageIcon } from 'lucide-react'
+import { X, Loader2, User, Mail, Phone, School, BookOpen, Calendar, Lock, UserLock, Check, Image as ImageIcon, AlertCircle } from 'lucide-react'
 
 interface AddStudentModalProps {
   isOpen: boolean
@@ -232,75 +232,30 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-[#232A42] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#232A42] -mt-4 sm:-mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 z-10">
-          <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">Add New Student</h2>
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto border-2 border-gray-300">
+        <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center z-10">
+          <h2 className="text-xl font-bold text-gray-800">Add New Student</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-white p-2 -mr-2 rounded-lg hover:bg-white/5 transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-red-500" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border-l-4 border-red-500 rounded-lg text-red-300 text-sm">
+          <div className="mx-6 mt-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center gap-2 border-2 border-red-200">
+            <AlertCircle className="w-4 h-4" />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Avatar Upload */}
-          <div className="flex justify-center mb-2">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleAvatarUpload}
-                disabled={uploadingAvatar}
-                className="cursor-pointer"
-              >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-dashed border-gray-500 hover:border-[#C75712] transition-colors duration-300 flex items-center justify-center overflow-hidden bg-gray-800/50 group">
-                  {uploadingAvatar ? (
-                    <div className="w-8 h-8 border-2 border-[#C75712] border-t-transparent rounded-full animate-spin" />
-                  ) : avatarPreview ? (
-                    <img 
-                      src={avatarPreview} 
-                      alt="Avatar preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : formData.firstName && formData.lastName ? (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white"
-                      style={{ backgroundColor: initialsColor }}
-                    >
-                      {displayInitials}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 group-hover:text-[#C75712] transition-colors" />
-                      <span className="text-[8px] sm:text-xs text-center text-gray-400 block mt-1">Add Photo</span>
-                    </div>
-                  )}
-                </div>
-              </button>
-              {avatarPreview && (
-                <button
-                  type="button"
-                  onClick={removeAvatar}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition"
-                >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* First Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">First Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -308,14 +263,15 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="First Name"
                 />
               </div>
             </div>
 
+            {/* Last Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Last Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -323,14 +279,15 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Last Name"
                 />
               </div>
             </div>
 
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -338,28 +295,30 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Email Address"
                 />
               </div>
             </div>
 
+            {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Phone Number"
                 />
               </div>
             </div>
 
+            {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Username *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -367,14 +326,15 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   required
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Username"
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Password *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -383,14 +343,15 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   minLength={8}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Password (min. 8 chars)"
                 />
               </div>
             </div>
 
+            {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
               <div className="relative">
                 <UserLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -398,31 +359,30 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Confirm Password"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Class */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Class</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
               <div className="relative">
                 <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={formData.classId}
                   onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                 >
-                  <option value="">Select Class</option>
+                  <option value="" className="text-blue-950">Select Class</option>
                   {loadingClasses ? (
-                    <option disabled>Loading classes...</option>
+                    <option disabled className="text-blue-950">Loading classes...</option>
                   ) : classes.length === 0 ? (
-                    <option disabled>No classes available</option>
+                    <option disabled className="text-blue-950">No classes available</option>
                   ) : (
                     classes.map((cls) => (
-                      <option key={cls.$id} value={cls.$id}>
+                      <option key={cls.$id} value={cls.$id} className="text-blue-950">
                         {cls.LevelOrForm} - {cls.Room || 'No Room'}
                       </option>
                     ))
@@ -431,69 +391,126 @@ export const AddStudentModal = ({ isOpen, onClose, onSuccess, schoolId }: AddStu
               </div>
             </div>
 
+            {/* Level */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Level</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
               <div className="relative">
                 <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={formData.level}
                   onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                 >
-                  <option value="">Select Level</option>
-                  <option value="O-Level">O-Level</option>
-                  <option value="A-Level">A-Level</option>
-                  <option value="Primary">Primary</option>
+                  <option value="" className="text-blue-950">Select Level</option>
+                  <option value="O-Level" className="text-blue-950">O-Level</option>
+                  <option value="A-Level" className="text-blue-950">A-Level</option>
+                  <option value="Primary" className="text-blue-950">Primary</option>
                 </select>
               </div>
             </div>
 
+            {/* Form */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Form</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Form</label>
               <div className="relative">
                 <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={formData.form}
                   onChange={(e) => setFormData({ ...formData, form: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                 >
-                  <option value="">Select Form</option>
-                  <option value="Form 1">Form 1</option>
-                  <option value="Form 2">Form 2</option>
-                  <option value="Form 3">Form 3</option>
-                  <option value="Form 4">Form 4</option>
-                  <option value="Lower Six">Lower Six</option>
-                  <option value="Upper Six">Upper Six</option>
+                  <option value="" className="text-blue-950">Select Form</option>
+                  <option value="Form 1" className="text-blue-950">Form 1</option>
+                  <option value="Form 2" className="text-blue-950">Form 2</option>
+                  <option value="Form 3" className="text-blue-950">Form 3</option>
+                  <option value="Form 4" className="text-blue-950">Form 4</option>
+                  <option value="Lower Six" className="text-blue-950">Lower Six</option>
+                  <option value="Upper Six" className="text-blue-950">Upper Six</option>
                 </select>
               </div>
             </div>
 
+            {/* Enrollment Date & Avatar */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Enrollment Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Date</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="date"
                   value={formData.enrollmentDate}
                   onChange={(e) => setFormData({ ...formData, enrollmentDate: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                 />
+              </div>
+            </div>
+
+            {/* Avatar - Now in the same row as Enrollment Date */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 hover:border-[#C75712] transition-colors duration-300 flex items-center justify-center overflow-hidden bg-gray-50 group">
+                      {uploadingAvatar ? (
+                        <div className="w-5 h-5 border-2 border-[#C75712] border-t-transparent rounded-full animate-spin" />
+                      ) : avatarPreview ? (
+                        <img 
+                          src={avatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : formData.firstName && formData.lastName ? (
+                        <div 
+                          className="w-full h-full flex items-center justify-center text-sm font-bold text-white"
+                          style={{ backgroundColor: initialsColor }}
+                        >
+                          {displayInitials}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center">
+                          <ImageIcon className="w-4 h-4 text-gray-400 group-hover:text-[#C75712] transition-colors" />
+                          <span className="text-[6px] text-center text-gray-400 block mt-0.5">Photo</span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={removeAvatar}
+                      className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full p-0.5 hover:bg-red-600 transition shadow-sm"
+                    >
+                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs text-gray-500">Upload photo</p>
+                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 sticky bottom-0 bg-[#232A42] -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 sm:pb-6">
+          <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-300">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 sm:py-2 text-sm sm:text-base text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || uploadingAvatar}
-              className="px-6 py-2.5 sm:py-2 text-sm sm:text-base bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 touch-manipulation"
+              className="px-6 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-[#C75712]"
             >
               {loading || uploadingAvatar ? (
                 <>

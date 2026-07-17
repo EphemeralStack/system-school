@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { databases, storage } from '@/lib/appwrite/config'
 import { ID } from 'appwrite'
-import { X, Loader2, User, Mail, Phone, School, Calendar, Lock, UserLock, Check, Image as ImageIcon, Briefcase, GraduationCap } from 'lucide-react'
+import { X, Loader2, User, Mail, Phone, School, Calendar, Lock, UserLock, Check, Image as ImageIcon, Briefcase, GraduationCap, AlertCircle } from 'lucide-react'
 
 interface AddTeacherModalProps {
   isOpen: boolean
@@ -34,12 +34,10 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
     avatarFileId: '',
   })
 
-  // Get initials from name
   const getInitials = (firstName: string, lastName: string): string => {
     return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
   }
 
-  // Generate consistent color based on name
   const getInitialsColor = (firstName: string, lastName: string): string => {
     const colors = [
       '#3B82F6', '#10B981', '#F59E0B', '#EF4444', 
@@ -113,19 +111,16 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
     e.preventDefault()
     setError('')
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match!')
       return
     }
 
-    // Validate password length
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters')
       return
     }
 
-    // Validate required fields
     if (!formData.firstName || !formData.lastName || !formData.email || 
         !formData.username || !formData.password) {
       setError('Please fill in all required fields')
@@ -135,7 +130,6 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
     setLoading(true)
 
     try {
-      // 1. Create user in USERS collection
       const userDoc = await databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
@@ -150,7 +144,6 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
         }
       )
 
-      // 2. Create teacher document with only the specified fields
       await databases.createDocument(
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
         process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
@@ -158,7 +151,7 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
         {
           schoolId: schoolId,
           userId: userDoc.$id,
-          departmentId: ID.unique(), // Auto-generate department ID
+          departmentId: ID.unique(),
           HireDate: formData.hireDate || new Date().toISOString(),
           Qualification: formData.qualification || '',
           SubjectSpecialization: formData.subjectSpecialization || '',
@@ -168,7 +161,6 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
 
       onSuccess()
       onClose()
-      // Reset form
       setFormData({
         firstName: '',
         lastName: '',
@@ -204,75 +196,29 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-[#232A42] rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[92dvh] sm:max-h-[90dvh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6 sticky top-0 bg-[#232A42] -mt-4 sm:-mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 z-10">
-          <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">Add New Teacher</h2>
+      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto border-2 border-gray-300">
+        <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center z-10">
+          <h2 className="text-xl font-bold text-gray-800">Add New Teacher</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-gray-400 hover:text-white p-2 -mr-2 rounded-lg hover:bg-white/5 transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5 text-red-500" />
           </button>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border-l-4 border-red-500 rounded-lg text-red-300 text-sm">
+          <div className="mx-6 mt-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center gap-2 border-2 border-red-200">
+            <AlertCircle className="w-4 h-4" />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Avatar Upload */}
-          <div className="flex justify-center mb-2">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleAvatarUpload}
-                disabled={uploadingAvatar}
-                className="cursor-pointer"
-              >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-2 border-dashed border-gray-500 hover:border-[#C75712] transition-colors duration-300 flex items-center justify-center overflow-hidden bg-gray-800/50 group">
-                  {uploadingAvatar ? (
-                    <div className="w-8 h-8 border-2 border-[#C75712] border-t-transparent rounded-full animate-spin" />
-                  ) : avatarPreview ? (
-                    <img 
-                      src={avatarPreview} 
-                      alt="Avatar preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : formData.firstName && formData.lastName ? (
-                    <div 
-                      className="w-full h-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white"
-                      style={{ backgroundColor: initialsColor }}
-                    >
-                      {displayInitials}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 group-hover:text-[#C75712] transition-colors" />
-                      <span className="text-[8px] sm:text-xs text-center text-gray-400 block mt-1">Add Photo</span>
-                    </div>
-                  )}
-                </div>
-              </button>
-              {avatarPreview && (
-                <button
-                  type="button"
-                  onClick={removeAvatar}
-                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition"
-                >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">First Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -280,14 +226,14 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   required
                   value={formData.firstName}
                   onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="First Name"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Last Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -295,14 +241,14 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   required
                   value={formData.lastName}
                   onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Last Name"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -310,28 +256,28 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Email Address"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Phone Number"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Username *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -339,14 +285,14 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   required
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Username"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Password *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -355,14 +301,14 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   minLength={8}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Password (min. 8 chars)"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Confirm Password *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
               <div className="relative">
                 <UserLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -370,84 +316,136 @@ export const AddTeacherModal = ({ isOpen, onClose, onSuccess, schoolId }: AddTea
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="Confirm Password"
                 />
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Qualification</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Qualification</label>
               <div className="relative">
                 <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={formData.qualification}
                   onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="e.g., B.Ed, M.A. Education"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Subject Specialization</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subject Specialization</label>
               <div className="relative">
                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
                   value={formData.subjectSpecialization}
                   onChange={(e) => setFormData({ ...formData, subjectSpecialization: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   placeholder="e.g., Mathematics, Science"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Hire Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hire Date</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="date"
                   value={formData.hireDate}
                   onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
               <div className="relative">
                 <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full bg-gray-800/50 text-white rounded-lg pl-10 pr-4 py-2.5 border border-gray-700 focus:border-[#C75712] focus:outline-none appearance-none"
+                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                 >
-                  <option value="active">Active</option>
-                  <option value="on_leave">On Leave</option>
-                  <option value="retired">Retired</option>
+                  <option value="active" className="text-blue-950">Active</option>
+                  <option value="on_leave" className="text-blue-950">On Leave</option>
+                  <option value="retired" className="text-blue-950">Retired</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Avatar - Now in the bottom row */}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                    className="cursor-pointer"
+                  >
+                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-gray-300 hover:border-[#C75712] transition-colors duration-300 flex items-center justify-center overflow-hidden bg-gray-50 group">
+                      {uploadingAvatar ? (
+                        <div className="w-6 h-6 border-2 border-[#C75712] border-t-transparent rounded-full animate-spin" />
+                      ) : avatarPreview ? (
+                        <img 
+                          src={avatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : formData.firstName && formData.lastName ? (
+                        <div 
+                          className="w-full h-full flex items-center justify-center text-xl font-bold text-white"
+                          style={{ backgroundColor: initialsColor }}
+                        >
+                          {displayInitials}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center">
+                          <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-[#C75712] transition-colors" />
+                          <span className="text-[8px] text-center text-gray-400 block mt-0.5">Add Photo</span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {avatarPreview && (
+                    <button
+                      type="button"
+                      onClick={removeAvatar}
+                      className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 hover:bg-red-600 transition shadow-sm"
+                    >
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-600">Upload a profile photo</p>
+                  <p className="text-xs text-gray-400">PNG, JPG, WEBP (max 5MB)</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 sticky bottom-0 bg-[#232A42] -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 sm:pb-6">
+          <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-300">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 sm:py-2 text-sm sm:text-base text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || uploadingAvatar}
-              className="px-6 py-2.5 sm:py-2 text-sm sm:text-base bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 touch-manipulation"
+              className="px-6 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-[#C75712]"
             >
               {loading || uploadingAvatar ? (
                 <>

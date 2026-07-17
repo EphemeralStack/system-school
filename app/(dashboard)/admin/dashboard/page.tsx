@@ -355,6 +355,7 @@ const AdminDashboard = () => {
   const [showAddTeacher, setShowAddTeacher] = useState(false)
   const [showAddApplicant, setShowAddApplicant] = useState(false)
   const [showAddClass, setShowAddClass] = useState(false)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -478,10 +479,13 @@ const AdminDashboard = () => {
     }
   }
 
-  // Fetch counts on mount
+  // Fetch counts only once on initial mount
   useEffect(() => {
-    fetchCounts()
-  }, [])
+    if (isInitialLoad) {
+      fetchCounts()
+      setIsInitialLoad(false)
+    }
+  }, [isInitialLoad])
 
   // Check if school data exists
   useEffect(() => {
