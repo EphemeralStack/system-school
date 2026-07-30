@@ -65,6 +65,9 @@ import { AddStudentModal } from '@/components/dashboard/AddStudentModal'
 import { AddTeacherModal } from '@/components/dashboard/AddTeacherModal'
 import { AddApplicantModal } from '@/components/dashboard/AddApplicantModal'
 
+import FinancialAuditDesk, {
+  FinancialAuditSidePanel,
+} from '@/components/dashboard/financial-audit/FinancialAuditDesk'
 // ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
   { id: 'global-config', label: 'Global Configuration', icon: Settings },
@@ -343,6 +346,40 @@ const AdminDashboard = () => {
   const router = useRouter()
   const { user, logout } = useAuth()
   const [activeSection, setActiveSection] = useState('global-config')
+
+  // FINANCIAL_SECTION_URL_SYNC
+  useEffect(() => {
+    const syncSectionFromUrl = () => {
+      const requestedSection =
+        new URLSearchParams(
+          window.location.search
+        ).get('section')
+
+      if (
+        requestedSection === 'global-config' ||
+        requestedSection === 'financial-audit' ||
+        requestedSection === 'user-accounts'
+      ) {
+        setActiveSection(
+          requestedSection
+        )
+      }
+    }
+
+    syncSectionFromUrl()
+
+    window.addEventListener(
+      'popstate',
+      syncSectionFromUrl
+    )
+
+    return () => {
+      window.removeEventListener(
+        'popstate',
+        syncSectionFromUrl
+      )
+    }
+  }, [])
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false)
   const [showSchoolSetup, setShowSchoolSetup] = useState(false)
@@ -700,6 +737,13 @@ const AdminDashboard = () => {
 
                   setActiveSection(section.id)
                   setIsLeftPanelOpen(false)
+
+                  router.replace(
+                    `/admin/dashboard?section=${section.id}`,
+                    {
+                      scroll: false,
+                    }
+                  )
                 }}
                 className={`
                   w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 text-xs sm:text-sm touch-manipulation
@@ -762,6 +806,13 @@ const AdminDashboard = () => {
         </div>
         </div>
 
+        {/* FINANCIAL_AUDIT_MIDDLE_SWITCH */}
+        {activeSection === 'financial-audit' ? (
+          <FinancialAuditDesk
+            schoolId={schoolData?.$id}
+          />
+        ) : (
+          <>
         {/* ===== KEY METRICS - 2 Rows x 2 Columns ===== */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
           {/* Students Card */}
@@ -874,6 +925,9 @@ const AdminDashboard = () => {
           onShowAll={handleShowAllRbac}
           onEdit={handleRbacEdit}
         />
+
+          </>
+        )}
       </div>
 
       {/* ===== RIGHT PANEL ===== */}
@@ -892,6 +946,11 @@ const AdminDashboard = () => {
           <X className="w-5 h-5" />
         </button>
 
+        {/* FINANCIAL_AUDIT_RIGHT_SWITCH */}
+        {activeSection === 'financial-audit' ? (
+          <FinancialAuditSidePanel />
+        ) : (
+          <>
         <h3 className="font-bold text-white mb-3 sm:mb-4 mt-10 lg:mt-8 text-sm sm:text-base">Notifications & Alerts</h3>
         <div className="space-y-3 sm:space-y-4">
           {notifications.map((notification) => {
@@ -942,6 +1001,9 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+
+          </>
+        )}
       </div>
 
       {/* Edit School Modal */}
@@ -1055,4 +1117,5 @@ const AdminDashboard = () => {
 }
 
 export default AdminDashboard
+
 
