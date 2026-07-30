@@ -1,4 +1,4 @@
-// app/admin/dashboard/page.tsx
+﻿// app/admin/dashboard/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -683,6 +683,11 @@ const AdminDashboard = () => {
               <button
                 key={section.id}
                 onClick={() => {
+                  if (section.id === 'academic-matrix') {
+                    router.push('/admin/academic-matrix')
+                    return
+                  }
+
                   setActiveSection(section.id)
                   setIsLeftPanelOpen(false)
                 }}
