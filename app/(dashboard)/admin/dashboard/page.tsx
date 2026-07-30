@@ -337,6 +337,7 @@ const SchoolSetupForm = ({ onClose, onSave, initialData }: { onClose: () => void
   )
 }
 
+let cachedAdminSchoolData: any = null
 // ============= MAIN DASHBOARD =============
 const AdminDashboard = () => {
   const router = useRouter()
@@ -345,8 +346,12 @@ const AdminDashboard = () => {
   const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false)
   const [isRightPanelOpen, setIsRightPanelOpen] = useState(false)
   const [showSchoolSetup, setShowSchoolSetup] = useState(false)
-  const [schoolData, setSchoolData] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [schoolData, setSchoolData] = useState<any>(
+    () => cachedAdminSchoolData
+  )
+  const [loading, setLoading] = useState(
+    () => cachedAdminSchoolData === null
+  )
   const [studentCount, setStudentCount] = useState(0)
   const [teacherCount, setTeacherCount] = useState(0)
   const [applicantCount, setApplicantCount] = useState(0)
@@ -496,7 +501,12 @@ const AdminDashboard = () => {
           process.env.NEXT_PUBLIC_APPWRITE_SCHOOLS_COLLECTION_ID!
         )
         if (response.documents.length > 0) {
-          setSchoolData(response.documents[0])
+          cachedAdminSchoolData =
+            response.documents[0]
+
+          setSchoolData(
+            cachedAdminSchoolData
+          )
         }
       } catch (error) {
         console.error('Error checking school data:', error)
@@ -954,7 +964,25 @@ const AdminDashboard = () => {
                   updatedAt: new Date().toISOString(),
                 }
               )
-              setSchoolData({ ...schoolData, Name: data.Name, Address: data.Address, ContactEmail: data.ContactEmail, ContactPhone: data.ContactPhone, LogoUrl: data.LogoUrl, Status: data.Status || 'active' })
+              const updatedSchoolData = {
+                ...schoolData,
+                Name: data.Name,
+                Address: data.Address,
+                ContactEmail:
+                  data.ContactEmail,
+                ContactPhone:
+                  data.ContactPhone,
+                LogoUrl: data.LogoUrl,
+                Status:
+                  data.Status || 'active',
+              }
+
+              cachedAdminSchoolData =
+                updatedSchoolData
+
+              setSchoolData(
+                updatedSchoolData
+              )
               setShowSchoolSetup(false)
             } catch (error) {
               console.error('Error updating school:', error)
@@ -1027,3 +1055,4 @@ const AdminDashboard = () => {
 }
 
 export default AdminDashboard
+

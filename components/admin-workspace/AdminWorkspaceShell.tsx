@@ -5,11 +5,9 @@ import {
   Bell,
   Grid3X3,
   Home,
-  LogOut,
   Menu,
   Search,
   Settings,
-  SlidersHorizontal,
   User,
   Users,
   X,
@@ -55,7 +53,7 @@ const NAV_ITEMS: Array<{
     id: 'financial',
     label: 'Financial Auditing Desk',
     href: '/admin/dashboard?section=financial-audit',
-    Icon: BarChart3,
+    Icon: Search,
   },
   {
     id: 'academic',
@@ -99,7 +97,7 @@ export default function AdminWorkspaceShell({
   quickActions,
   children,
 }: AdminWorkspaceShellProps) {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
 
   const [leftOpen, setLeftOpen] =
     useState(false)
@@ -127,44 +125,45 @@ export default function AdminWorkspaceShell({
   }
 
   const leftPanel = (
-    <aside className="h-full bg-[#20283f] text-white flex flex-col">
-      <div className="px-5 pt-7 pb-5">
-        <Link
-          href="/admin/dashboard"
-          onClick={closePanels}
-          className="inline-flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
-        >
-          <span className="w-7 h-7 rounded-full border border-gray-400 flex items-center justify-center">
-            ←
-          </span>
-          <span className="text-sm font-medium">
-            back
-          </span>
-        </Link>
+    <aside className="h-full bg-[#232A42] text-white p-4 flex flex-col overflow-y-auto">
+      <button
+        type="button"
+        onClick={() =>
+          setLeftOpen(false)
+        }
+        aria-label="Close navigation menu"
+        className="lg:hidden absolute top-3 right-3 min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-400 hover:text-white active:bg-white/10 rounded-lg touch-manipulation"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      <div className="mb-6 mt-1 lg:mt-6">
+        <span className="font-bold text-white">
+          Navigator
+        </span>
       </div>
 
-      <div className="px-4">
-        <div className="bg-white/10 rounded-lg p-2 grid grid-cols-4 gap-1">
-          {[User, Grid3X3, BarChart3, SlidersHorizontal].map(
-            (Icon, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`h-9 rounded-md flex items-center justify-center transition-colors ${
-                  index === 0
-                    ? 'bg-white/20 text-white'
-                    : 'text-gray-500 hover:text-white hover:bg-white/10'
-                }`}
-                aria-label={`Admin utility ${index + 1}`}
-              >
-                <Icon className="w-4 h-4" />
-              </button>
-            )
-          )}
+      <div className="bg-[#D9D9D9]/15 rounded-lg p-2 mb-6">
+        <div className="flex justify-between items-center">
+          <div className="p-2 rounded-lg bg-[#2C3553] text-white">
+            <Home className="w-5 h-5" />
+          </div>
+
+          <div className="p-2 rounded-lg text-gray-400">
+            <BarChart3 className="w-5 h-5" />
+          </div>
+
+          <div className="p-2 rounded-lg text-gray-400">
+            <Bell className="w-5 h-5" />
+          </div>
+
+          <div className="p-2 rounded-lg text-gray-400">
+            <Settings className="w-5 h-5" />
+          </div>
         </div>
       </div>
 
-      <nav className="px-3 py-6 space-y-3">
+      <nav className="space-y-1.5 sm:space-y-8">
         {NAV_ITEMS.map(
           ({
             id,
@@ -180,14 +179,18 @@ export default function AdminWorkspaceShell({
                 key={id}
                 href={href}
                 onClick={closePanels}
-                className={`flex items-center gap-3 rounded-xl px-4 py-4 text-sm transition-all ${
-                  active
-                    ? 'bg-white/15 text-white shadow-sm'
-                    : 'text-gray-400 hover:text-white hover:bg-white/10'
-                }`}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 text-xs sm:text-sm touch-manipulation
+                  ${
+                    active
+                      ? 'bg-[#D9D9D9]/15 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-[#D9D9D9]/10 active:bg-[#D9D9D9]/20'
+                  }
+                `}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="leading-tight">
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+
+                <span className="font-medium truncate">
                   {label}
                 </span>
               </Link>
@@ -195,19 +198,6 @@ export default function AdminWorkspaceShell({
           }
         )}
       </nav>
-
-      <div className="mt-auto px-4 pb-5">
-        <button
-          type="button"
-          onClick={() => void logout('/')}
-          className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          <span className="text-sm">
-            Sign out
-          </span>
-        </button>
-      </div>
     </aside>
   )
 
@@ -322,7 +312,7 @@ export default function AdminWorkspaceShell({
         </button>
       </div>
 
-      <div className="grid lg:grid-cols-[245px_minmax(0,1fr)_275px] min-h-screen">
+      <div className="grid lg:grid-cols-[220px_minmax(0,1fr)_275px] xl:grid-cols-[240px_minmax(0,1fr)_275px] min-h-screen">
         <div className="hidden lg:block lg:sticky lg:top-0 lg:h-screen">
           {leftPanel}
         </div>
