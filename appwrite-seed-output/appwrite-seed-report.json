@@ -1,0 +1,3436 @@
+{
+  "generatedAt": "2026-07-30T20:38:12.078Z",
+  "project": {
+    "endpoint": "https://syd.cloud.appwrite.io/v1",
+    "projectId": "6a466db90017775cb15a",
+    "databaseId": "6a4679b4003a283bf7c5"
+  },
+  "settings": {
+    "rowsPerTable": 20,
+    "dryRun": false,
+    "verify": true,
+    "selectedTables": [
+      "school",
+      "users",
+      "admins",
+      "applicants",
+      "departments",
+      "teachers",
+      "subjects",
+      "classes",
+      "students",
+      "teacher_subjects",
+      "student_subjects",
+      "attendance",
+      "timetable",
+      "exams",
+      "marks",
+      "fees",
+      "payments",
+      "discipline",
+      "hostels",
+      "hostel_students",
+      "transport_routes",
+      "student_transport",
+      "announcements",
+      "calendar",
+      "inventory"
+    ]
+  },
+  "summary": {
+    "tablesFound": 25,
+    "tablesSelected": 25,
+    "rowsPlanned": 500,
+    "rowsSucceeded": 500,
+    "rowsFailed": 0
+  },
+  "tables": [
+    {
+      "tableId": "6a4679e3003a448373f5",
+      "tableName": "school",
+      "columns": [
+        {
+          "key": "Name",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Address",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "ContactEmail",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "email",
+          "elements": null
+        },
+        {
+          "key": "ContactPhone",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "LogoUrl",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "url",
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "active",
+            "trial",
+            "suspended"
+          ]
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 21,
+      "rows": [
+        {
+          "rowId": "seed_school_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_school_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a467bca0028aa4c101d",
+      "tableName": "users",
+      "columns": [
+        {
+          "key": "FirstName",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "LastName",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Email",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "email",
+          "elements": null
+        },
+        {
+          "key": "Phone",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Role",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "admin",
+            "teacher",
+            "student",
+            "applicant"
+          ]
+        },
+        {
+          "key": "avatar",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "url",
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 28,
+      "rows": [
+        {
+          "rowId": "seed_users_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_users_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a467fa400134f2e22fb",
+      "tableName": "admins",
+      "columns": [
+        {
+          "key": "userId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Position",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "active",
+            "inactive",
+            "Suspended",
+            "On_leave",
+            "Resigned"
+          ]
+        },
+        {
+          "key": "AssignedArea",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "avatar",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "url",
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 22,
+      "rows": [
+        {
+          "rowId": "seed_admins_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_admins_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a468d4900055d1414a3",
+      "tableName": "applicants",
+      "columns": [
+        {
+          "key": "userId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "ApplicationNo",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "LevelOrFormApplied",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "pending",
+            "accepted",
+            "rejected"
+          ]
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 21,
+      "rows": [
+        {
+          "rowId": "seed_applicants_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_applicants_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46906e003010e3ae68",
+      "tableName": "departments",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Name",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "headTeacherId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "OfficeLocation",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "ContactEmail",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_departments_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_departments_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a468fef0015ef8b6700",
+      "tableName": "teachers",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "userId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "departmentId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "HireDate",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Qualification",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "SubjectSpecialization",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "active",
+            "on_leave",
+            "retired"
+          ]
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 23,
+      "rows": [
+        {
+          "rowId": "seed_teachers_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teachers_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a4694a8002b051668fb",
+      "tableName": "subjects",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "SubjectName",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "SubjectCode",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "departmentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_subjects_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_subjects_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46954400004dcdad0a",
+      "tableName": "classes",
+      "columns": [
+        {
+          "key": "teacherId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "LevelOrForm",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Room",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "name",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 22,
+      "rows": [
+        {
+          "rowId": "seed_classes_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_classes_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a468f3d0024a2d9e1f5",
+      "tableName": "students",
+      "columns": [
+        {
+          "key": "userId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "classId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Level",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Form",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "EnrollmentDate",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "active",
+            "graduated",
+            "suspended",
+            "withdrawn"
+          ]
+        },
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 23,
+      "rows": [
+        {
+          "rowId": "seed_students_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_students_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a4695d10013da52558d",
+      "tableName": "teacher_subjects",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "teacherId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "subjectId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "classId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_teacher_subjects_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_teacher_subjects_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469647000e93fdffb3",
+      "tableName": "student_subjects",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "subjectId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_student_subjects_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_subjects_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a4696a700063845d75a",
+      "tableName": "attendance",
+      "columns": [
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "classId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Date",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "present",
+            "absent",
+            "late",
+            "excused"
+          ]
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_attendance_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_attendance_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469733002461daf27d",
+      "tableName": "timetable",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "classId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "subjectId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "teacherId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Day",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+            "sunday"
+          ]
+        },
+        {
+          "key": "TimeSlot",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Term",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Year",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_timetable_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_timetable_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469a1f003540bc8f87",
+      "tableName": "exams",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "ExamName",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "ExamDate",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "Term",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Year",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_exams_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_exams_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469acd000752038ff4",
+      "tableName": "marks",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "subjectId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "teacherId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "examId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Score",
+          "type": "double",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Grade",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_marks_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_marks_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469b760021c28997c9",
+      "tableName": "fees",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "LevelOrForm",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Term",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Description",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "AmountDue",
+          "type": "double",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Year",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_fees_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_fees_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469e210036a8928839",
+      "tableName": "payments",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "feeId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Amount",
+          "type": "double",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Date",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "Method",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "cash",
+            "bank_transfer",
+            "mobile_money",
+            "card"
+          ]
+        },
+        {
+          "key": "Status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "pending",
+            "completed",
+            "failed"
+          ]
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_payments_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_payments_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469ede000266c9242b",
+      "tableName": "discipline",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Incident",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Date",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "ActionTaken",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Remarks",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_discipline_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_discipline_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469fe2003281315de4",
+      "tableName": "hostels",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Name",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Capacity",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Gender",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "male",
+            "female",
+            "mixed"
+          ]
+        },
+        {
+          "key": "supervisorId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_hostels_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostels_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a469f770004125f7662",
+      "tableName": "hostel_students",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "hostelId",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "DateAssigned",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "RoomNumber",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_hostel_students_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_hostel_students_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46a0eb00235f2b7a05",
+      "tableName": "transport_routes",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Description",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "StartPoint",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "EndPoint",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_transport_routes_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_transport_routes_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46a09600152018c9c1",
+      "tableName": "student_transport",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "studentId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "routeId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_student_transport_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_student_transport_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46a1530006093f2879",
+      "tableName": "announcements",
+      "columns": [
+        {
+          "key": "Title",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Message",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Date",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "postedBy",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_announcements_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_announcements_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46a1ac002dc7caf2bf",
+      "tableName": "calendar",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Title",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Date",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "format": "",
+          "elements": null
+        },
+        {
+          "key": "Description",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "postedBy",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_calendar_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_calendar_20",
+          "status": "upserted"
+        }
+      ]
+    },
+    {
+      "tableId": "6a46a43100312d1abf33",
+      "tableName": "inventory",
+      "columns": [
+        {
+          "key": "schoolId",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Name",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Quantity",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "Location",
+          "type": "text",
+          "required": false,
+          "array": false,
+          "format": null,
+          "elements": null
+        },
+        {
+          "key": "managedBy",
+          "type": "text",
+          "required": true,
+          "array": false,
+          "format": null,
+          "elements": null
+        }
+      ],
+      "planned": 20,
+      "succeeded": 20,
+      "failed": 0,
+      "totalRowsAfterSeed": 20,
+      "rows": [
+        {
+          "rowId": "seed_inventory_01",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_02",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_03",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_04",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_05",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_06",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_07",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_08",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_09",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_10",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_11",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_12",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_13",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_14",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_15",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_16",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_17",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_18",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_19",
+          "status": "upserted"
+        },
+        {
+          "rowId": "seed_inventory_20",
+          "status": "upserted"
+        }
+      ]
+    }
+  ],
+  "expectedTablesMissing": []
+}
