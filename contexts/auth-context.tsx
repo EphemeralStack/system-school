@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import {
   createContext,
@@ -133,6 +133,9 @@ const BLOCKED_STATUSES = new Set([
   'suspended',
   'withdrawn',
   'resigned',
+  'rejected',
+  'retired',
+  'on_leave',
 ])
 
 function requireEnvironmentVariable(
@@ -1079,3 +1082,4 @@ export function useAuth(): AuthContextType {
 
   return context
 }
+

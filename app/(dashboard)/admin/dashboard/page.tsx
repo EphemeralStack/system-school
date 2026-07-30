@@ -68,7 +68,10 @@ import { AddApplicantModal } from '@/components/dashboard/AddApplicantModal'
 import FinancialAuditDesk, {
   FinancialAuditSidePanel,
 } from '@/components/dashboard/financial-audit/FinancialAuditDesk'
-// ============= LEFT PANEL SECTIONS =============
+
+import UserAccountsDesk, {
+  UserAccountsSidePanel,
+} from '@/components/dashboard/user-accounts/UserAccountsDesk'// ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
   { id: 'global-config', label: 'Global Configuration', icon: Settings },
   { id: 'financial-audit', label: 'Financial Auditing Desk', icon: SearchIcon },
@@ -807,9 +810,17 @@ const AdminDashboard = () => {
         </div>
 
         {/* FINANCIAL_AUDIT_MIDDLE_SWITCH */}
+        {/* USER_ACCOUNTS_MIDDLE_SWITCH */}
         {activeSection === 'financial-audit' ? (
           <FinancialAuditDesk
             schoolId={schoolData?.$id}
+          />
+        ) : activeSection === 'user-accounts' ? (
+          <UserAccountsDesk
+            schoolId={schoolData?.$id}
+            onAddStudent={handleAddStudent}
+            onAddTeacher={handleAddTeacher}
+            onAddApplicant={handleAddApplicant}
           />
         ) : (
           <>
@@ -947,8 +958,11 @@ const AdminDashboard = () => {
         </button>
 
         {/* FINANCIAL_AUDIT_RIGHT_SWITCH */}
+        {/* USER_ACCOUNTS_RIGHT_SWITCH */}
         {activeSection === 'financial-audit' ? (
           <FinancialAuditSidePanel />
+        ) : activeSection === 'user-accounts' ? (
+          <UserAccountsSidePanel />
         ) : (
           <>
         <h3 className="font-bold text-white mb-3 sm:mb-4 mt-10 lg:mt-8 text-sm sm:text-base">Notifications & Alerts</h3>
@@ -1117,5 +1131,6 @@ const AdminDashboard = () => {
 }
 
 export default AdminDashboard
+
 
 
