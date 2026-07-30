@@ -1,12 +1,22 @@
 // contexts/auth-context.tsx
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { account, databases } from '@/lib/appwrite/config'
-import { ID } from 'appwrite'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
+import { ID, Query } from 'appwrite'
 import { useRouter } from 'next/navigation'
 
-interface User {
+import { account, databases } from '@/lib/appwrite/config'
+
+export type UserRole = 'admin' | 'teacher' | 'student' | 'applicant'
+
+export interface User {
   $id: string
   FirstName: string
   LastName: string
@@ -14,7 +24,34 @@ interface User {
   phone: string
   avatar?: string
   avatarFileId?: string
-  Role?: string
+  Role: UserRole
+}
+
+export interface RegisterData {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  password: string
+
+  avatar?: string
+  avatarFileId?: string
+
+  schoolId?: string
+  departmentId?: string
+  hireDate?: string
+  qualification?: string
+  subjectSpecialization?: string
+
+  classId?: string
+  level?: string
+  form?: string
+
+  levelOrFormApplied?: string
+
+  position?: string
+  assignedArea?: string
+  status?: string
 }
 
 interface AuthContextType {
@@ -26,71 +63,266 @@ interface AuthContextType {
   registerTeacher: (data: RegisterData) => Promise<void>
   registerStudent: (data: RegisterData) => Promise<void>
 
-  login: (email: string, password: string) => Promise<any>
+  login: (email: string, password: string) => Promise<User>
   logout: () => Promise<void>
+  refreshUser: () => Promise<User | null>
   getSchools: () => Promise<any[]>
 }
 
-interface RegisterData {
-  firstName: string
-  lastName: string
-  email: string
-  hireDate?: string
-  departmentId?: string
-  qualification?: string
-  subjectSpecialization?: string
-  classId?: string
-  level?: string
-  form?: string
-  phone: string
-  password: string
-  avatar?: string
-  avatarFileId?: string
+interface UserProfileDocument {
+  $id: string
+  FirstName?: string
+  LastName?: string
+  Email?: string
+  Phone?: string
   Role?: string
+  avatar?: string
+}
 
-  levelOrFormApplied?: string
-  position?: string
-  assignedArea?: string
-  status?: string
+interface AppwriteErrorLike {
+  code?: number
+  message?: string
+  type?: string
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const VALID_ROLES: UserRole[] = [
+  'admin',
+  'teacher',
+  'student',
+  'applicant',
+]
+
+function requireEnvironmentVariable(
+  name: string,
+  value: string | undefined
+): string {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(`Missing environment variable: ${name}`)
+  }
+
+  return normalizedValue
+}
+
+function getDatabaseId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_DATABASE_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID
+  )
+}
+
+function getUsersCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID
+  )
+}
+
+function getAdminsCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION_ID
+  )
+}
+
+function getApplicantsCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID
+  )
+}
+
+function getStudentsCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID
+  )
+}
+
+function getTeachersCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID
+  )
+}
+
+function getSchoolsCollectionId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_SCHOOLS_COLLECTION_ID',
+    process.env.NEXT_PUBLIC_APPWRITE_SCHOOLS_COLLECTION_ID
+  )
+}
+
+function requireValue(value: string | undefined, label: string): string {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    throw new Error(`${label} is required.`)
+  }
+
+  return normalizedValue
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase()
+}
+
+function normalizeRole(value: unknown): UserRole {
+  if (
+    typeof value === 'string' &&
+    VALID_ROLES.includes(value.toLowerCase() as UserRole)
+  ) {
+    return value.toLowerCase() as UserRole
+  }
+
+  return 'applicant'
+}
+
+function getErrorCode(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined
+  }
+
+  return (error as AppwriteErrorLike).code
+}
+
+function createApplicationNumber(): string {
+  const timestampPart = Date.now().toString().slice(-8)
+  const randomPart = Math.random()
+    .toString(36)
+    .substring(2, 6)
+    .toUpperCase()
+
+  return `APP-${timestampPart}-${randomPart}`
+}
+
+async function findUserProfileByEmail(
+  email: string
+): Promise<UserProfileDocument | null> {
+  try {
+    const response = await databases.listDocuments({
+      databaseId: getDatabaseId(),
+      collectionId: getUsersCollectionId(),
+      queries: [
+        Query.equal('Email', [normalizeEmail(email)]),
+        Query.limit(1),
+      ],
+    })
+
+    if (response.documents.length === 0) {
+      return null
+    }
+
+    return response.documents[0] as unknown as UserProfileDocument
+  } catch (error) {
+    console.error('Unable to load the database user profile:', error)
+    return null
+  }
+}
+
+async function loadCurrentUser(): Promise<User> {
+  const appwriteUser = await account.get()
+  const profile = await findUserProfileByEmail(appwriteUser.email)
+
+  const preferences = (appwriteUser.prefs ?? {}) as Record<string, unknown>
+
+  const preferenceValue = (key: string): string => {
+    const value = preferences[key]
+    return typeof value === 'string' ? value.trim() : ''
+  }
+
+  const profileRole = profile?.Role
+  const preferenceRole = preferenceValue('Role')
+
+  return {
+    $id: appwriteUser.$id,
+
+    FirstName:
+      profile?.FirstName?.trim() ||
+      preferenceValue('FirstName') ||
+      appwriteUser.name?.split(' ')[0] ||
+      '',
+
+    LastName:
+      profile?.LastName?.trim() ||
+      preferenceValue('LastName') ||
+      appwriteUser.name?.split(' ').slice(1).join(' ') ||
+      '',
+
+    Email: profile?.Email?.trim() || appwriteUser.email,
+
+    phone:
+      profile?.Phone?.trim() ||
+      preferenceValue('phone') ||
+      appwriteUser.phone ||
+      '',
+
+    avatar:
+      profile?.avatar?.trim() ||
+      preferenceValue('avatar') ||
+      '',
+
+    avatarFileId: preferenceValue('avatarFileId'),
+
+    Role: normalizeRole(profileRole || preferenceRole),
+  }
+}
+
+function getDashboardPath(role: UserRole): string {
+  switch (role) {
+    case 'admin':
+      return '/admin/dashboard'
+
+    case 'teacher':
+      return '/teacher/dashboard'
+
+    case 'student':
+      return '/student/dashboard'
+
+    case 'applicant':
+    default:
+      return '/applicant/dashboard'
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+
   const router = useRouter()
 
-  useEffect(() => {
-    checkUser()
-  }, [])
-
-  const checkUser = async () => {
+  const refreshUser = useCallback(async (): Promise<User | null> => {
     try {
-      const session = await account.get()
-      setUser({
-        $id: session.$id,
-        FirstName: session.prefs?.FirstName || '',
-        LastName: session.prefs?.LastName || '',
-        Email: session.email,
-        phone: session.phone || '',
-        avatar: session.prefs?.avatar || '',
-        avatarFileId: session.prefs?.avatarFileId || '',
-        Role: session.prefs?.Role || 'applicant',
-      })
+      const currentUser = await loadCurrentUser()
+      setUser(currentUser)
+
+      return currentUser
     } catch (error) {
+      if (getErrorCode(error) !== 401) {
+        console.error('Error checking the current user:', error)
+      }
+
       setUser(null)
+      return null
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const getSchools = async () => {
+  useEffect(() => {
+    void refreshUser()
+  }, [refreshUser])
+
+  const getSchools = async (): Promise<any[]> => {
     try {
-      const response = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_SCHOOLS_COLLECTION_ID!
-      )
+      const response = await databases.listDocuments({
+        databaseId: getDatabaseId(),
+        collectionId: getSchoolsCollectionId(),
+      })
+
       return response.documents
     } catch (error) {
       console.error('Error fetching schools:', error)
@@ -98,380 +330,288 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const registerAdmin = async (data: RegisterData) => {
+  const createBaseAccount = async (
+    data: RegisterData,
+    role: UserRole
+  ): Promise<User> => {
+    const firstName = requireValue(data.firstName, 'First name')
+    const lastName = requireValue(data.lastName, 'Last name')
+    const email = normalizeEmail(
+      requireValue(data.email, 'Email address')
+    )
+    const password = requireValue(data.password, 'Password')
+    const phone = data.phone?.trim() || ''
+    const fullName = `${firstName} ${lastName}`.trim()
+
+    const newAccount = await account.create({
+      userId: ID.unique(),
+      email,
+      password,
+      name: fullName,
+    })
+
+    await account.createEmailPasswordSession({
+      email,
+      password,
+    })
+
+    await account.updatePrefs({
+      prefs: {
+        FirstName: firstName,
+        LastName: lastName,
+        phone,
+        Role: role,
+        avatar: data.avatar?.trim() || '',
+        avatarFileId: data.avatarFileId?.trim() || '',
+      },
+    })
+
+    await databases.createDocument({
+      databaseId: getDatabaseId(),
+      collectionId: getUsersCollectionId(),
+      documentId: newAccount.$id,
+      data: {
+        FirstName: firstName,
+        LastName: lastName,
+        Email: email,
+        Phone: phone,
+        Role: role,
+        avatar: data.avatar?.trim() || '',
+      },
+    })
+
+    return {
+      $id: newAccount.$id,
+      FirstName: firstName,
+      LastName: lastName,
+      Email: email,
+      phone,
+      Role: role,
+      avatar: data.avatar?.trim() || '',
+      avatarFileId: data.avatarFileId?.trim() || '',
+    }
+  }
+
+  const registerAdmin = async (data: RegisterData): Promise<void> => {
+    setLoading(true)
+
     try {
-      const fullName = `${data.firstName} ${data.lastName}`
-      const newUser = await account.create(
-        ID.unique(),
-        data.email,
-        data.password,
-        fullName
-      )
+      const registeredUser = await createBaseAccount(data, 'admin')
 
-      await account.createEmailPasswordSession(data.email, data.password)
-
-      await account.updatePrefs({
-
-        phone: data.phone,
-        avatar: data.avatar || '',
-        avatarFileId: data.avatarFileId || '',
-        Role: data.Role || 'admin',
-
-        FirstName: data.firstName,
-        LastName: data.lastName,
+      await databases.createDocument({
+        databaseId: getDatabaseId(),
+        collectionId: getAdminsCollectionId(),
+        documentId: registeredUser.$id,
+        data: {
+          userId: registeredUser.$id,
+          Position: data.position?.trim() || 'Administrator',
+          AssignedArea:
+            data.assignedArea?.trim() || 'Administration',
+          Status: data.status?.trim() || 'active',
+          avatar: data.avatar?.trim() || '',
+        },
       })
 
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          Phone: data.phone,
-          Role: "admin",
-          avatar: data.avatar || "",
-        }
-      )
-
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          userId: newUser.$id,
-          Position: data.position || "Administrator",
-          AssignedArea: data.assignedArea || "",
-          Status: data.status || "active",
-          avatar: data.avatar || "",
-        }
-      )
-
-      setUser({
-        $id: newUser.$id,
-        FirstName: data.firstName,
-        LastName: data.lastName,
-        Email: data.email,
-        phone: data.phone,
-        avatar: data.avatar || "",
-        avatarFileId: data.avatarFileId || "",
-        Role: "admin",
-      })
-
-      router.push("/admin/dashboard")
+      setUser(registeredUser)
+      router.replace(getDashboardPath('admin'))
     } catch (error) {
       console.error('Error registering admin:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
-  const registerTeacher = async (data: RegisterData) => {
+  const registerTeacher = async (
+    data: RegisterData
+  ): Promise<void> => {
+    const schoolId = requireValue(data.schoolId, 'School')
+
+    setLoading(true)
+
     try {
-      const fullName = `${data.firstName} ${data.lastName}`
-      const newUser = await account.create(
-        ID.unique(),
-        data.email,
-        data.password,
-        fullName
-      )
+      const registeredUser = await createBaseAccount(data, 'teacher')
 
-      await account.createEmailPasswordSession(data.email, data.password)
-
-      await account.updatePrefs({
-
-        phone: data.phone,
-        avatar: data.avatar || '',
-        avatarFileId: data.avatarFileId || '',
-        Role: data.Role || 'teacher',
-
-        FirstName: data.firstName,
-        LastName: data.lastName,
+      await databases.createDocument({
+        databaseId: getDatabaseId(),
+        collectionId: getTeachersCollectionId(),
+        documentId: registeredUser.$id,
+        data: {
+          schoolId,
+          userId: registeredUser.$id,
+          departmentId: data.departmentId?.trim() || '',
+          HireDate: data.hireDate?.trim() || '',
+          Qualification: data.qualification?.trim() || '',
+          SubjectSpecialization:
+            data.subjectSpecialization?.trim() || '',
+          Status: data.status?.trim() || 'active',
+        },
       })
 
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          Phone: data.phone,
-          Role: "teacher",
-          avatar: data.avatar || "",
-        }
-      )
-
-      // Create teacher document
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          userId: newUser.$id,
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          phone: data.phone,
-          departmentId: data.departmentId || "",
-          hireDate: data.hireDate || "",
-          qualification: data.qualification || "",
-          subjectSpecialization: data.subjectSpecialization || "",
-          status: data.status || "active",
-          avatar: data.avatar || "",
-          avatarFileId: data.avatarFileId || "",
-        }
-      )
-
-      setUser({
-        $id: newUser.$id,
-        FirstName: data.firstName,
-        LastName: data.lastName,
-        Email: data.email,
-        phone: data.phone,
-        avatar: data.avatar || "",
-        avatarFileId: data.avatarFileId || "",
-        Role: "teacher",
-      })
-
-      router.push("/teacher/dashboard")
+      setUser(registeredUser)
+      router.replace(getDashboardPath('teacher'))
     } catch (error) {
       console.error('Error registering teacher:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
-  const registerStudent = async (data: RegisterData) => {
+  const registerStudent = async (
+    data: RegisterData
+  ): Promise<void> => {
+    setLoading(true)
+
     try {
-      const fullName = `${data.firstName} ${data.lastName}`
-      const newUser = await account.create(
-        ID.unique(),
-        data.email,
-        data.password,
-        fullName
-      )
+      const registeredUser = await createBaseAccount(data, 'student')
 
-      await account.createEmailPasswordSession(data.email, data.password)
+      const studentData: Record<string, unknown> = {
+        userId: registeredUser.$id,
+        classId: data.classId?.trim() || '',
+        Level: data.level?.trim() || '',
+        Form: data.form?.trim() || '',
+        EnrollmentDate: new Date().toISOString(),
+        Status: data.status?.trim() || 'active',
+      }
 
-      await account.updatePrefs({
+      if (data.schoolId?.trim()) {
+        studentData.schoolId = data.schoolId.trim()
+      }
 
-        phone: data.phone,
-        avatar: data.avatar || '',
-        avatarFileId: data.avatarFileId || '',
-        Role: data.Role || 'student',
-        FirstName: data.firstName,
-        LastName: data.lastName,
+      await databases.createDocument({
+        databaseId: getDatabaseId(),
+        collectionId: getStudentsCollectionId(),
+        documentId: registeredUser.$id,
+        data: studentData,
       })
 
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          Phone: data.phone,
-          Role: "student",
-          avatar: data.avatar || "",
-        }
-      )
-
-      // Create student document
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          userId: newUser.$id,
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          phone: data.phone,
-          classId: data.classId || "",
-          level: data.level || "",
-          form: data.form || "",
-          enrollmentDate: new Date().toISOString(),
-          status: data.status || "active",
-          avatar: data.avatar || "",
-          avatarFileId: data.avatarFileId || "",
-        }
-      )
-
-      setUser({
-        $id: newUser.$id,
-        FirstName: data.firstName,
-        LastName: data.lastName,
-        Email: data.email,
-        phone: data.phone,
-        avatar: data.avatar || "",
-        avatarFileId: data.avatarFileId || "",
-        Role: "student",
-      })
-
-      router.push("/student/dashboard")
+      setUser(registeredUser)
+      router.replace(getDashboardPath('student'))
     } catch (error) {
       console.error('Error registering student:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
-  const registerApplicant = async (data: RegisterData) => {
+  const registerApplicant = async (
+    data: RegisterData
+  ): Promise<void> => {
+    const levelOrFormApplied = requireValue(
+      data.levelOrFormApplied,
+      'Level or form applied for'
+    )
+
+    setLoading(true)
+
     try {
-      console.log('🚀 Starting applicant registration...')
-
-      // 1. Generate application number
-      const applicationNo = `APP-${Date.now().toString().slice(-8)}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`
-
-      // 2. Create Appwrite Auth account
-      const fullName = `${data.firstName} ${data.lastName}`
-      console.log('📝 Creating user account for:', data.email)
-
-      const newUser = await account.create(
-        ID.unique(),
-        data.email,
-        data.password,
-        fullName
+      const registeredUser = await createBaseAccount(
+        data,
+        'applicant'
       )
-      console.log('✅ User account created:', newUser.$id)
 
-      // 3. Login
-      await account.createEmailPasswordSession(data.email, data.password)
-      console.log('✅ Session created')
-
-      // 4. Update preferences
-      await account.updatePrefs({
-        phone: data.phone,
-        avatar: data.avatar || "",
-        avatarFileId: data.avatarFileId || "",
-        Role: "applicant",
-        FirstName: data.firstName,
-        LastName: data.lastName,
-      })
-      console.log('✅ Preferences updated')
-
-      // 5. USERS collection
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          Email: data.email,
-          Phone: data.phone,
-          Role: "applicant",
-          avatar: data.avatar || "",
-          avatarFileId: data.avatarFileId || "",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      )
-      console.log('✅ User document created')
-
-      // 6. APPLICANTS collection
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          userId: newUser.$id,
-          applicationNo: applicationNo,
-          levelOrFormApplied: data.levelOrFormApplied || "",
-          status: "pending",
-          FirstName: data.firstName,
-          LastName: data.lastName,
-          email: data.email,
-          phone: data.phone,
-          avatar: data.avatar || "",
-          avatarFileId: data.avatarFileId || "",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }
-      )
-      console.log('✅ Applicant document created')
-
-      // 7. Update state
-      setUser({
-        $id: newUser.$id,
-        FirstName: data.firstName,
-        LastName: data.lastName,
-        Email: data.email,
-        phone: data.phone,
-        avatar: data.avatar || "",
-        avatarFileId: data.avatarFileId || "",
-        Role: "applicant",
+      await databases.createDocument({
+        databaseId: getDatabaseId(),
+        collectionId: getApplicantsCollectionId(),
+        documentId: registeredUser.$id,
+        data: {
+          userId: registeredUser.$id,
+          ApplicationNo: createApplicationNumber(),
+          LevelOrFormApplied: levelOrFormApplied,
+          Status: 'pending',
+        },
       })
 
-      console.log('🎉 Applicant registration complete!')
-      router.push("/applicant/dashboard")
+      setUser(registeredUser)
+      router.replace(getDashboardPath('applicant'))
     } catch (error) {
-      console.error("❌ Applicant registration error:", error)
+      console.error('Error registering applicant:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<User> => {
+    setLoading(true)
+
     try {
-      await account.createEmailPasswordSession(email, password)
-      await checkUser()
-      
-      // Redirect based on role
-      const userRole = user?.Role || 'applicant'
-      switch (userRole) {
-        case 'admin':
-          router.push('/admin/dashboard')
-          break
-        case 'teacher':
-          router.push('/teacher/dashboard')
-          break
-        case 'student':
-          router.push('/student/dashboard')
-          break
-        default:
-          router.push('/applicant/dashboard')
-      }
+      await account.createEmailPasswordSession({
+        email: normalizeEmail(
+          requireValue(email, 'Email address')
+        ),
+        password: requireValue(password, 'Password'),
+      })
+
+      /*
+       * Do not read the React `user` state here.
+       * loadCurrentUser() returns the actual freshly authenticated user.
+       */
+      const authenticatedUser = await loadCurrentUser()
+
+      setUser(authenticatedUser)
+      router.replace(getDashboardPath(authenticatedUser.Role))
+
+      return authenticatedUser
     } catch (error) {
+      setUser(null)
       console.error('Login error:', error)
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
-  const logout = async () => {
+  const logout = async (): Promise<void> => {
+    setLoading(true)
+
     try {
-      await account.deleteSession('current')
-      setUser(null)
-      router.push('/')
+      await account.deleteSession({
+        sessionId: 'current',
+      })
     } catch (error) {
-      console.error('Logout error:', error)
-      throw error
+      if (getErrorCode(error) !== 401) {
+        console.error('Logout error:', error)
+        throw error
+      }
+    } finally {
+      setUser(null)
+      setLoading(false)
+      router.replace('/')
     }
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      registerApplicant, 
-      registerAdmin, 
-      registerTeacher, 
-      registerStudent, 
-      login, 
-      logout, 
-      getSchools 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        registerApplicant,
+        registerAdmin,
+        registerTeacher,
+        registerStudent,
+        login,
+        logout,
+        refreshUser,
+        getSchools,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext)
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
+
   return context
 }
