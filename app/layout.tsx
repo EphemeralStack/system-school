@@ -1,22 +1,15 @@
 import type { Metadata } from 'next'
-import {
-  Geist,
-  Geist_Mono,
-} from 'next/font/google'
+import { Rubik } from 'next/font/google'
 
 import './globals.css'
 
 import AuthGate from '@/components/auth/AuthGate'
 import { AuthProvider } from '@/contexts/auth-context'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const rubik = Rubik({
   subsets: ['latin'],
-})
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-rubik',
 })
 
 export const metadata: Metadata = {
@@ -33,9 +26,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${rubik.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body
+        className={`${rubik.className} min-h-full flex flex-col`}
+      >
         <AuthProvider>
           <AuthGate>
             {children}
