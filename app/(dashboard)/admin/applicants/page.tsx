@@ -4,8 +4,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { databases } from '@/lib/appwrite/config'
-import { ID, Query } from 'appwrite'
+import { Query } from 'appwrite'
 import { AddApplicantModal } from '@/components/dashboard/AddApplicantModal'
+import {
+  deleteApplicantAsAdmin,
+  updateApplicantAsAdmin,
+} from '@/lib/admin/manage-applicant'
+import { ZIMBABWE_PRIMARY_GRADES } from '@/lib/school/primary-school-options'
 import { 
   ArrowLeft, 
   FileText, 
@@ -22,7 +27,6 @@ import {
   AlertCircle,
   Mail,
   Phone,
-  Calendar,
   BookOpen,
   User,
   Filter,
@@ -85,10 +89,7 @@ const ApplicantsPage = () => {
     { value: 'interview', label: 'Interview Invitation' },
   ]
 
-  const levelFormOptions = [
-    'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6',
-    'Lower Six', 'Upper Six', 'O-Level', 'A-Level', 'Primary',
-  ]
+  const levelFormOptions = [...ZIMBABWE_PRIMARY_GRADES]
 
   useEffect(() => {
     fetchApplicants()
@@ -194,7 +195,7 @@ const ApplicantsPage = () => {
 
   // Export CSV functionality
   const exportCSV = () => {
-    const headers = ['#', 'Applicant Name', 'Email', 'Phone', 'Application No', 'Level/Form', 'Status']
+    const headers = ['#', 'Applicant Name', 'Email', 'Phone', 'Application No', 'Grade Applied', 'Status']
     const rows = filteredApplicants.map((applicant, index) => {
       const user = applicant.userId ? usersMap[applicant.userId] : null
       const fullName = user ? `${user.FirstName || ''} ${user.LastName || ''}`.trim() : 'Unknown'
@@ -248,20 +249,20 @@ const ApplicantsPage = () => {
     setIsSubmitting(true)
 
     try {
-      await databases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-        selectedApplicant.$id,
-        {
-          LevelOrFormApplied: editFormData.levelOrFormApplied,
-          Status: editFormData.status,
-        }
-      )
+      if (!selectedApplicant?.$id) {
+        throw new Error('Select a valid applicant before updating.')
+      }
+
+      await updateApplicantAsAdmin({
+        applicantId: selectedApplicant.$id,
+        levelOrFormApplied: editFormData.levelOrFormApplied,
+        status: editFormData.status,
+      })
 
       setSuccessMessage('Applicant updated successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
       setShowEditModal(false)
-      fetchApplicants()
+      await fetchApplicants()
     } catch (error) {
       console.error('Error updating applicant:', error)
       setError(error instanceof Error ? error.message : 'Failed to update applicant')
@@ -276,18 +277,22 @@ const ApplicantsPage = () => {
   }
 
   const confirmDelete = async () => {
+    setError('')
     setIsSubmitting(true)
-    try {
-      await databases.deleteDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-        selectedApplicant.$id
-      )
 
-      setSuccessMessage('Applicant deleted successfully!')
+    try {
+      if (!selectedApplicant?.$id) {
+        throw new Error('Select a valid applicant before deleting.')
+      }
+
+      await deleteApplicantAsAdmin(selectedApplicant.$id)
+
+      setSuccessMessage('Applicant account deleted successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
       setShowDeleteModal(false)
-      fetchApplicants()
+      setSelectedApplicant(null)
+      setSelectedUser(null)
+      await fetchApplicants()
     } catch (error) {
       console.error('Error deleting applicant:', error)
       setError(error instanceof Error ? error.message : 'Failed to delete applicant')
@@ -328,27 +333,32 @@ const ApplicantsPage = () => {
       console.log('Message:', emailFormData.message)
       console.log('Template:', emailFormData.template)
 
-      // Update applicant status if needed
-      if (emailFormData.template === 'approval') {
-        await databases.updateDocument(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          selectedApplicant.$id,
-          { Status: 'approved' }
-        )
-        fetchApplicants()
-      } else if (emailFormData.template === 'rejection') {
-        await databases.updateDocument(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-          selectedApplicant.$id,
-          { Status: 'rejected' }
-        )
-        fetchApplicants()
+      const statusByTemplate: Record<string, string> = {
+        approval: 'accepted',
+        rejection: 'rejected',
       }
 
-      setSuccessMessage('Email sent successfully!')
-      setTimeout(() => setSuccessMessage(''), 3000)
+      const nextStatus = statusByTemplate[emailFormData.template]
+
+      if (nextStatus) {
+        await updateApplicantAsAdmin({
+          applicantId: selectedApplicant.$id,
+          levelOrFormApplied: selectedApplicant.LevelOrFormApplied,
+          status: nextStatus,
+        })
+
+        await fetchApplicants()
+
+        setSuccessMessage(
+          'Applicant status updated. Email delivery is not configured yet.'
+        )
+      } else {
+        setSuccessMessage(
+          'Email delivery is not configured yet. No message was sent.'
+        )
+      }
+
+      setTimeout(() => setSuccessMessage(''), 4000)
       setShowEmailModal(false)
     } catch (error) {
       console.error('Error sending email:', error)
@@ -361,9 +371,8 @@ const ApplicantsPage = () => {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'pending': 'bg-yellow-100 text-yellow-700',
-      'approved': 'bg-green-100 text-green-700',
+      'accepted': 'bg-green-100 text-green-700',
       'rejected': 'bg-red-100 text-red-700',
-      'interview_scheduled': 'bg-blue-100 text-blue-700',
     }
     return colors[status] || 'bg-gray-100 text-gray-700'
   }
@@ -371,9 +380,8 @@ const ApplicantsPage = () => {
   const getStatusIcon = (status: string) => {
     switch(status) {
       case 'pending': return <Clock className="w-3 h-3" />
-      case 'approved': return <CheckCircle className="w-3 h-3" />
+      case 'accepted': return <CheckCircle className="w-3 h-3" />
       case 'rejected': return <XCircle className="w-3 h-3" />
-      case 'interview_scheduled': return <Calendar className="w-3 h-3" />
       default: return <Clock className="w-3 h-3" />
     }
   }
@@ -382,7 +390,7 @@ const ApplicantsPage = () => {
   const getTemplateContent = (template: string, applicantName: string) => {
     const templates: Record<string, string> = {
       default: `Dear ${applicantName},\n\nThank you for your application. We have received your application and will review it shortly.\n\nBest regards,\nAdmissions Office`,
-      approval: `Dear ${applicantName},\n\nCongratulations! We are pleased to inform you that your application has been approved. You will receive further instructions via email.\n\nWelcome to our school!\n\nBest regards,\nAdmissions Office`,
+      approval: `Dear ${applicantName},\n\nCongratulations! We are pleased to inform you that your application has been accepted. You will receive further instructions via email.\n\nWelcome to our school!\n\nBest regards,\nAdmissions Office`,
       rejection: `Dear ${applicantName},\n\nThank you for your interest in our school. After careful review of your application, we regret to inform you that we are unable to offer you admission at this time.\n\nWe wish you all the best in your future endeavors.\n\nBest regards,\nAdmissions Office`,
       interview: `Dear ${applicantName},\n\nWe are pleased to invite you for an interview regarding your application. Please confirm your availability for the scheduled date.\n\nDate: To be scheduled\nTime: To be scheduled\nLocation: School Campus\n\nBest regards,\nAdmissions Office`,
     }
@@ -449,15 +457,15 @@ const ApplicantsPage = () => {
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Approved</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Accepted</p>
             <p className="text-2xl font-bold text-green-600">
-              {applicants.filter(a => a.Status === 'approved').length}
+              {applicants.filter(a => a.Status === 'accepted').length}
             </p>
           </div>
           <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Interview Scheduled</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Rejected</p>
             <p className="text-2xl font-bold text-blue-600">
-              {applicants.filter(a => a.Status === 'interview_scheduled').length}
+              {applicants.filter(a => a.Status === 'rejected').length}
             </p>
           </div>
         </div>
@@ -521,21 +529,20 @@ const ApplicantsPage = () => {
                     >
                       <option value="" className="text-blue-950">All Status</option>
                       <option value="pending" className="text-blue-950">Pending</option>
-                      <option value="approved" className="text-blue-950">Approved</option>
+                      <option value="accepted" className="text-blue-950">Accepted</option>
                       <option value="rejected" className="text-blue-950">Rejected</option>
-                      <option value="interview_scheduled" className="text-blue-950">Interview Scheduled</option>
                     </select>
                   </div>
 
                   {/* Level Filter */}
                   <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Level/Form</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Grade Applied</label>
                     <select
                       value={filterLevel}
                       onChange={(e) => setFilterLevel(e.target.value)}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
                     >
-                      <option value="" className="text-blue-950">All Levels</option>
+                      <option value="" className="text-blue-950">All Grades</option>
                       {levelFormOptions.map((option) => (
                         <option key={option} value={option} className="text-blue-950">{option}</option>
                       ))}
@@ -580,7 +587,7 @@ const ApplicantsPage = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">#</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Applicant</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Application No</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Level/Form</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Grade Applied</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
                       <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
                     </tr>
@@ -787,7 +794,7 @@ const ApplicantsPage = () => {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Level/Form Applied</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Grade Applied For</label>
                   <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
                     {selectedApplicant.LevelOrFormApplied || 'N/A'}
                   </p>
@@ -835,13 +842,13 @@ const ApplicantsPage = () => {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level/Form Applied</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade Applied For</label>
                   <select
                     value={editFormData.levelOrFormApplied}
                     onChange={(e) => setEditFormData({ ...editFormData, levelOrFormApplied: e.target.value })}
                     className="w-full text-blue-950 px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                   >
-                    <option value="" className="text-blue-950">Select Level/Form</option>
+                    <option value="" className="text-blue-950">Select grade</option>
                     {levelFormOptions.map((option) => (
                       <option key={option} value={option} className="text-blue-950">{option}</option>
                     ))}
@@ -855,9 +862,8 @@ const ApplicantsPage = () => {
                     className="w-full text-blue-950 px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
                   >
                     <option value="pending" className="text-blue-950">Pending</option>
-                    <option value="approved" className="text-blue-950">Approved</option>
+                    <option value="accepted" className="text-blue-950">Accepted</option>
                     <option value="rejected" className="text-blue-950">Rejected</option>
-                    <option value="interview_scheduled" className="text-blue-950">Interview Scheduled</option>
                   </select>
                 </div>
               </div>

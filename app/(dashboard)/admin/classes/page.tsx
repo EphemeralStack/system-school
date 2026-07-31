@@ -4,8 +4,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { databases } from '@/lib/appwrite/config'
-import { ID, Query } from 'appwrite'
+import { Query } from 'appwrite'
 import { AddClassModal } from '@/components/dashboard/AddClassModal'
+import {
+  deleteClassAsAdmin,
+  updateClassAsAdmin,
+} from '@/lib/admin/manage-class'
+import { ZIMBABWE_PRIMARY_GRADES } from '@/lib/school/primary-school-options'
 import { 
   ArrowLeft, 
   School, 
@@ -23,7 +28,6 @@ import {
   AlertCircle,
   Mail,
   Phone,
-  Calendar,
   BookOpen,
   Users,
   Filter,
@@ -67,20 +71,8 @@ const ClassesPage = () => {
     teacherId: '',
   })
 
-  // Level/Form options
-  const levelFormOptions = [
-    'Form 1',
-    'Form 2',
-    'Form 3',
-    'Form 4',
-    'Form 5',
-    'Form 6',
-    'Lower Six',
-    'Upper Six',
-    'O-Level',
-    'A-Level',
-    'Primary',
-  ]
+  // Zimbabwe primary grade options
+  const levelFormOptions = [...ZIMBABWE_PRIMARY_GRADES]
 
   useEffect(() => {
     fetchClasses()
@@ -173,47 +165,61 @@ const ClassesPage = () => {
     }
   }
 
-  // Fetch available teachers for edit modal
-  const fetchAvailableTeachers = async () => {
+  // Fetch active teachers who are not assigned to another class.
+  const fetchAvailableTeachers = async (currentClassId?: string) => {
     try {
       setLoadingTeachers(true)
-      
-      const teachersResponse = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
-        [Query.equal('Status', 'active')]
+
+      const [teachersResponse, usersResponse, classesResponse] = await Promise.all([
+        databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
+          [Query.equal('Status', 'active'), Query.limit(100)]
+        ),
+        databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
+          [Query.limit(100)]
+        ),
+        databases.listDocuments(
+          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+          process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
+          [Query.limit(100)]
+        ),
+      ])
+
+      const usersById = new Map(
+        usersResponse.documents.map((user) => [user.$id, user])
       )
-      
-      const teachersWithUsers = []
-      for (const teacher of teachersResponse.documents) {
-        if (teacher.userId) {
-          const userResponse = await databases.listDocuments(
-            process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-            process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-            [Query.equal('$id', teacher.userId)]
-          )
-          
-          if (userResponse.documents.length > 0) {
-            const user = userResponse.documents[0]
-            teachersWithUsers.push({
+
+      const assignedTeacherIds = new Set(
+        classesResponse.documents
+          .filter((classRow) => classRow.$id !== currentClassId)
+          .map((classRow) => String(classRow.teacherId || '').trim())
+          .filter(Boolean)
+      )
+
+      setAvailableTeachers(
+        teachersResponse.documents
+          .filter((teacher) => !assignedTeacherIds.has(teacher.$id))
+          .map((teacher) => {
+            const user = teacher.userId
+              ? usersById.get(String(teacher.userId))
+              : null
+
+            return {
               ...teacher,
-              FirstName: user.FirstName || '',
-              LastName: user.LastName || '',
-              Email: user.Email || '',
-              Phone: user.Phone || '',
-              avatar: user.avatar || '',
-            })
-          } else {
-            teachersWithUsers.push(teacher)
-          }
-        } else {
-          teachersWithUsers.push(teacher)
-        }
-      }
-      
-      setAvailableTeachers(teachersWithUsers)
+              FirstName: user?.FirstName || '',
+              LastName: user?.LastName || '',
+              Email: user?.Email || '',
+              Phone: user?.Phone || '',
+              avatar: user?.avatar || '',
+            }
+          })
+      )
     } catch (error) {
       console.error('Error fetching teachers:', error)
+      setAvailableTeachers([])
     } finally {
       setLoadingTeachers(false)
     }
@@ -259,7 +265,7 @@ const ClassesPage = () => {
 
   // Export CSV functionality
   const exportCSV = () => {
-    const headers = ['#', 'Class Name', 'Level/Form', 'Room', 'Teacher', 'Teacher Email', 'Teacher Phone']
+    const headers = ['#', 'Class Name', 'Grade', 'Room', 'Teacher', 'Teacher Email', 'Teacher Phone']
     const rows = filteredClasses.map((cls, index) => {
       const teacher = cls.teacherId ? teachersMap[cls.teacherId] : null
       return [
@@ -304,7 +310,7 @@ const ClassesPage = () => {
       room: cls.Room || '',
       teacherId: cls.teacherId || '',
     })
-    await fetchAvailableTeachers()
+    await fetchAvailableTeachers(cls.$id)
     setShowEditModal(true)
     setError('')
   }
@@ -315,22 +321,22 @@ const ClassesPage = () => {
     setIsSubmitting(true)
 
     try {
-      await databases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
-        selectedClass.$id,
-        {
-          name: editFormData.name,
-          LevelOrForm: editFormData.levelOrForm,
-          Room: editFormData.room.toUpperCase(),
-          teacherId: editFormData.teacherId,
-        }
-      )
+      if (!selectedClass?.$id) {
+        throw new Error('Select a valid class before updating.')
+      }
+
+      await updateClassAsAdmin({
+        classId: selectedClass.$id,
+        name: editFormData.name,
+        levelOrForm: editFormData.levelOrForm,
+        room: editFormData.room,
+        teacherId: editFormData.teacherId,
+      })
 
       setSuccessMessage('Class updated successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
       setShowEditModal(false)
-      fetchClasses()
+      await fetchClasses()
     } catch (error) {
       console.error('Error updating class:', error)
       setError(error instanceof Error ? error.message : 'Failed to update class')
@@ -345,18 +351,22 @@ const ClassesPage = () => {
   }
 
   const confirmDelete = async () => {
+    setError('')
     setIsSubmitting(true)
+
     try {
-      await databases.deleteDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
-        selectedClass.$id
-      )
+      if (!selectedClass?.$id) {
+        throw new Error('Select a valid class before deleting.')
+      }
+
+      await deleteClassAsAdmin(selectedClass.$id)
 
       setSuccessMessage('Class deleted successfully!')
       setTimeout(() => setSuccessMessage(''), 3000)
       setShowDeleteModal(false)
-      fetchClasses()
+      setSelectedClass(null)
+      setSelectedTeacher(null)
+      await fetchClasses()
     } catch (error) {
       console.error('Error deleting class:', error)
       setError(error instanceof Error ? error.message : 'Failed to delete class')
@@ -394,17 +404,15 @@ const ClassesPage = () => {
 
   const getLevelColor = (level: string) => {
     const colors: Record<string, string> = {
-      'Form 1': 'bg-blue-100 text-blue-700',
-      'Form 2': 'bg-indigo-100 text-indigo-700',
-      'Form 3': 'bg-purple-100 text-purple-700',
-      'Form 4': 'bg-pink-100 text-pink-700',
-      'Form 5': 'bg-red-100 text-red-700',
-      'Form 6': 'bg-orange-100 text-orange-700',
-      'Lower Six': 'bg-yellow-100 text-yellow-700',
-      'Upper Six': 'bg-green-100 text-green-700',
-      'O-Level': 'bg-teal-100 text-teal-700',
-      'A-Level': 'bg-cyan-100 text-cyan-700',
-      'Primary': 'bg-gray-100 text-gray-700',
+      'ECD A': 'bg-pink-100 text-pink-700',
+      'ECD B': 'bg-purple-100 text-purple-700',
+      'Grade 1': 'bg-blue-100 text-blue-700',
+      'Grade 2': 'bg-indigo-100 text-indigo-700',
+      'Grade 3': 'bg-cyan-100 text-cyan-700',
+      'Grade 4': 'bg-teal-100 text-teal-700',
+      'Grade 5': 'bg-green-100 text-green-700',
+      'Grade 6': 'bg-yellow-100 text-yellow-700',
+      'Grade 7': 'bg-orange-100 text-orange-700',
     }
     return colors[level] || 'bg-gray-100 text-gray-700'
   }
@@ -533,13 +541,13 @@ const ClassesPage = () => {
 
     {/* Level Filter */}
     <div className="mb-3">
-      <label className="block text-xs font-medium text-gray-600 mb-1">Level/Form</label>
+      <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
       <select
         value={filterLevel}
         onChange={(e) => setFilterLevel(e.target.value)}
         className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
       >
-        <option value="" className="text-blue-950">All Levels</option>
+        <option value="" className="text-blue-950">All Grades</option>
         {levelFormOptions.map((option) => (
           <option key={option} value={option} className="text-blue-950">{option}</option>
         ))}
@@ -598,7 +606,7 @@ const ClassesPage = () => {
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b-2 border-gray-300">
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">#</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Class Name</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Level/Form</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Grade</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Room</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Teacher</th>
                       <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -789,7 +797,7 @@ const ClassesPage = () => {
                   <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">{selectedClass.name || 'N/A'}</p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Level/Form</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</label>
                   <p className="p-2 bg-gray-50 rounded-lg border border-gray-300">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(selectedClass.LevelOrForm)}`}>
                       {selectedClass.LevelOrForm || 'N/A'}
@@ -867,7 +875,7 @@ const ClassesPage = () => {
               <h2 className="text-xl font-bold text-gray-800">Edit Class</h2>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300 text-gray-500 hover:text-gray-700"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -887,21 +895,21 @@ const ClassesPage = () => {
                     required
                     value={editFormData.name}
                     onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                     placeholder="Enter class name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level/Form *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade *</label>
                   <select
                     required
                     value={editFormData.levelOrForm}
                     onChange={(e) => setEditFormData({ ...editFormData, levelOrForm: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   >
-                    <option value="">Select Level/Form</option>
+                    <option value="" className="text-gray-500">Select grade</option>
                     {levelFormOptions.map((option) => (
-                      <option key={option} value={option}>{option}</option>
+                      <option key={option} value={option} className="text-gray-900">{option}</option>
                     ))}
                   </select>
                 </div>
@@ -912,7 +920,7 @@ const ClassesPage = () => {
                     required
                     value={editFormData.room}
                     onChange={(e) => setEditFormData({ ...editFormData, room: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] uppercase"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] uppercase"
                     placeholder="Enter room number"
                   />
                 </div>
@@ -921,11 +929,11 @@ const ClassesPage = () => {
                   <select
                     value={editFormData.teacherId}
                     onChange={(e) => setEditFormData({ ...editFormData, teacherId: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
                   >
                     <option value="">Select Teacher</option>
                     {loadingTeachers ? (
-                      <option disabled>Loading teachers...</option>
+                      <option disabled className="text-gray-500">Loading teachers...</option>
                     ) : (
                       availableTeachers.map((teacher) => {
                         const firstName = teacher.FirstName || ''
@@ -934,7 +942,7 @@ const ClassesPage = () => {
                           ? `${firstName} ${lastName}`.trim()
                           : teacher.SubjectSpecialization || `Teacher ${teacher.$id.slice(-6)}`
                         return (
-                          <option key={teacher.$id} value={teacher.$id}>
+                          <option key={teacher.$id} value={teacher.$id} className="text-gray-900">
                             {name} {teacher.Email ? `(${teacher.Email})` : ''}
                           </option>
                         )

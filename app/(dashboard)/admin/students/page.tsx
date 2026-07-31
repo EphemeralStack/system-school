@@ -6,6 +6,11 @@ import { useRouter } from 'next/navigation'
 import { databases } from '@/lib/appwrite/config'
 import { ID, Query } from 'appwrite'
 import { AddStudentModal } from '@/components/dashboard/AddStudentModal'
+import {
+  ZIMBABWE_PRIMARY_GRADES,
+  ZIMBABWE_PRIMARY_STAGES,
+  primaryStageForGrade,
+} from '@/lib/school/primary-school-options'
 import { 
   ArrowLeft, 
   User, 
@@ -66,18 +71,9 @@ const StudentsPage = () => {
     status: '',
   })
 
-  // Level/Form options
-  const levelOptions = ['O-Level', 'A-Level', 'Primary']
-  const formOptions = [
-    'Form 1',
-    'Form 2',
-    'Form 3',
-    'Form 4',
-    'Form 5',
-    'Form 6',
-    'Lower Six',
-    'Upper Six',
-  ]
+  // Zimbabwe primary stage and grade options
+  const levelOptions = [...ZIMBABWE_PRIMARY_STAGES]
+  const formOptions = [...ZIMBABWE_PRIMARY_GRADES]
 
   useEffect(() => {
     fetchStudents()
@@ -162,7 +158,7 @@ const StudentsPage = () => {
       filtered = filtered.filter(student => student.Level === filterLevel)
     }
 
-    // Form filter
+    // Grade filter
     if (filterForm) {
       filtered = filtered.filter(student => student.Form === filterForm)
     }
@@ -188,7 +184,7 @@ const StudentsPage = () => {
 
   // Export CSV functionality
   const exportCSV = () => {
-    const headers = ['#', 'Student Name', 'Email', 'Phone', 'Level', 'Form', 'Status', 'Enrollment Date']
+    const headers = ['#', 'Student Name', 'Email', 'Phone', 'Primary Stage', 'Grade', 'Status', 'Enrollment Date']
     const rows = filteredStudents.map((student, index) => {
       const user = student.userId ? usersMap[student.userId] : null
       const fullName = user ? `${user.FirstName || ''} ${user.LastName || ''}`.trim() : 'Unknown'
@@ -461,28 +457,28 @@ const StudentsPage = () => {
 
                   {/* Level Filter */}
                   <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Level</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Primary Stage</label>
                     <select
                       value={filterLevel}
                       onChange={(e) => setFilterLevel(e.target.value)}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
                     >
-                      <option value="" className="text-blue-950">All Levels</option>
+                      <option value="" className="text-blue-950">All Primary Stages</option>
                       {levelOptions.map((option) => (
                         <option key={option} value={option} className="text-blue-950">{option}</option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Form Filter */}
+                  {/* Grade Filter */}
                   <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Form</label>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
                     <select
                       value={filterForm}
                       onChange={(e) => setFilterForm(e.target.value)}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
                     >
-                      <option value="" className="text-blue-950">All Forms</option>
+                      <option value="" className="text-blue-950">All Grades</option>
                       {formOptions.map((option) => (
                         <option key={option} value={option} className="text-blue-950">{option}</option>
                       ))}
@@ -542,8 +538,8 @@ const StudentsPage = () => {
                     <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b-2 border-gray-300">
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">#</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Student</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Level</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Form</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Primary Stage</th>
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Grade</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Enrollment Date</th>
                       <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -745,13 +741,13 @@ const StudentsPage = () => {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Level</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Primary Stage</label>
                   <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
                     {selectedStudent.Level || 'N/A'}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Form</label>
+                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</label>
                   <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
                     {selectedStudent.Form || 'N/A'}
                   </p>
@@ -807,26 +803,34 @@ const StudentsPage = () => {
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Stage</label>
                   <select
                     value={editFormData.level}
                     onChange={(e) => setEditFormData({ ...editFormData, level: e.target.value })}
                     className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-blue-950"
                   >
-                    <option value="" className="text-blue-950">Select Level</option>
+                    <option value="" className="text-blue-950">Select primary stage</option>
                     {levelOptions.map((option) => (
                       <option key={option} value={option} className="text-blue-950">{option}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Form</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
                   <select
                     value={editFormData.form}
-                    onChange={(e) => setEditFormData({ ...editFormData, form: e.target.value })}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        form: e.target.value,
+                        level:
+                          primaryStageForGrade(e.target.value) ||
+                          editFormData.level,
+                      })
+                    }
                     className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-blue-950"
                   >
-                    <option value="" className="text-blue-950">Select Form</option>
+                    <option value="" className="text-blue-950">Select grade</option>
                     {formOptions.map((option) => (
                       <option key={option} value={option} className="text-blue-950">{option}</option>
                     ))}

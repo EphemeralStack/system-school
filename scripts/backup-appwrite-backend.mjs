@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -244,6 +244,7 @@ async function main() {
   const apiKey =
     requiredEnvironmentValue(
       "Appwrite API key",
+      "SCHOOL_APPWRITE_SERVER_API_KEY",
       "APPWRITE_API_KEY",
       "APPWRITE_KEY",
       "APPWRITE_SERVER_API_KEY",

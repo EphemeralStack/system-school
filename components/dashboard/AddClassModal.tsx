@@ -1,23 +1,49 @@
-// components/dashboard/AddClassModal.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { Query } from 'appwrite'
+import {
+  AlertCircle,
+  BookOpen,
+  Check,
+  Loader2,
+  School,
+  User,
+  Users,
+  X,
+} from 'lucide-react'
+
 import { databases } from '@/lib/appwrite/config'
-import { ID, Query } from 'appwrite'
-import { X, Loader2, School, BookOpen, User, Users, Check, AlertCircle } from 'lucide-react'
+import { createClassAsAdmin } from '@/lib/admin/manage-class'
+import { ZIMBABWE_PRIMARY_GRADES } from '@/lib/school/primary-school-options'
 
 interface AddClassModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  schoolId: string
+  schoolId?: string
 }
 
-export const AddClassModal = ({ isOpen, onClose, onSuccess, schoolId }: AddClassModalProps) => {
+interface TeacherOption {
+  $id: string
+  userId?: string
+  FirstName?: string
+  LastName?: string
+  Email?: string
+  SubjectSpecialization?: string
+}
+
+const LEVEL_FORM_OPTIONS = ZIMBABWE_PRIMARY_GRADES
+
+export const AddClassModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddClassModalProps) => {
   const [loading, setLoading] = useState(false)
+  const [loadingTeachers, setLoadingTeachers] = useState(false)
   const [error, setError] = useState('')
-  const [teachers, setTeachers] = useState<any[]>([])
-  const [loadingTeachers, setLoadingTeachers] = useState(true)
+  const [teachers, setTeachers] = useState<TeacherOption[]>([])
   const [formData, setFormData] = useState({
     name: '',
     teacherId: '',
@@ -26,93 +52,131 @@ export const AddClassModal = ({ isOpen, onClose, onSuccess, schoolId }: AddClass
   })
 
   useEffect(() => {
-    const fetchTeachers = async () => {
+    if (!isOpen) return
+
+    let cancelled = false
+
+    const loadTeachers = async () => {
+      setLoadingTeachers(true)
+      setError('')
+
       try {
-        setLoadingTeachers(true)
-        
-        const teachersResponse = await databases.listDocuments(
-          process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-          process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
-          [Query.equal('Status', 'active')]
-        )
-        
-        const teachersWithUsers = []
-        for (const teacher of teachersResponse.documents) {
-          if (teacher.userId) {
-            const userResponse = await databases.listDocuments(
+        const [teachersResponse, usersResponse, classesResponse] =
+          await Promise.all([
+            databases.listDocuments(
+              process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+              process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID!,
+              [Query.equal('Status', 'active'), Query.limit(100)]
+            ),
+            databases.listDocuments(
               process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
               process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-              [Query.equal('$id', teacher.userId)]
-            )
-            if (userResponse.documents.length > 0) {
-              const user = userResponse.documents[0]
-              teachersWithUsers.push({
-                ...teacher,
-                FirstName: user.FirstName || '',
-                LastName: user.LastName || '',
-                Email: user.Email || '',
-              })
-            }
-          }
+              [Query.limit(100)]
+            ),
+            databases.listDocuments(
+              process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+              process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
+              [Query.limit(100)]
+            ),
+          ])
+
+        if (cancelled) return
+
+        const assignedTeacherIds = new Set(
+          classesResponse.documents
+            .map((row) => String(row.teacherId || '').trim())
+            .filter(Boolean)
+        )
+
+        const usersById = new Map(
+          usersResponse.documents.map((user) => [user.$id, user])
+        )
+
+        setTeachers(
+          teachersResponse.documents
+            .filter((teacher) => !assignedTeacherIds.has(teacher.$id))
+            .map((teacher) => {
+              const user = teacher.userId
+                ? usersById.get(String(teacher.userId))
+                : null
+
+              return {
+                $id: teacher.$id,
+                userId: teacher.userId
+                  ? String(teacher.userId)
+                  : undefined,
+                FirstName: String(user?.FirstName || ''),
+                LastName: String(user?.LastName || ''),
+                Email: String(user?.Email || ''),
+                SubjectSpecialization: String(
+                  teacher.SubjectSpecialization || ''
+                ),
+              }
+            })
+        )
+      } catch (loadError) {
+        console.error('Error fetching available teachers:', loadError)
+
+        if (!cancelled) {
+          setTeachers([])
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Unable to load available teachers.'
+          )
         }
-        
-        setTeachers(teachersWithUsers)
-      } catch (error) {
-        console.error('Error fetching teachers:', error)
       } finally {
-        setLoadingTeachers(false)
+        if (!cancelled) setLoadingTeachers(false)
       }
     }
-    fetchTeachers()
-  }, [])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    void loadTeachers()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen])
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
     setError('')
 
-    if (!formData.name || !formData.teacherId || !formData.levelOrForm || !formData.room) {
-      setError('Please fill in all required fields')
+    const name = formData.name.trim()
+    const teacherId = formData.teacherId.trim()
+    const levelOrForm = formData.levelOrForm.trim()
+    const room = formData.room.trim().toUpperCase()
+
+    if (!name || !teacherId || !levelOrForm || !room) {
+      setError('Please fill in all required fields.')
       return
     }
 
     setLoading(true)
 
     try {
-      const existingClasses = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
-        [Query.equal('teacherId', formData.teacherId)]
-      )
+      await createClassAsAdmin({
+        name,
+        teacherId,
+        levelOrForm,
+        room,
+      })
 
-      if (existingClasses.documents.length > 0) {
-        setError('This teacher is already assigned to another class. Each teacher can only be assigned to one class.')
-        setLoading(false)
-        return
-      }
-
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID!,
-        ID.unique(),
-        {
-          name: formData.name,
-          teacherId: formData.teacherId,
-          LevelOrForm: formData.levelOrForm,
-          Room: formData.room.toUpperCase(),
-        }
-      )
-
-      onSuccess()
-      onClose()
       setFormData({
         name: '',
         teacherId: '',
         levelOrForm: '',
         room: '',
       })
-    } catch (error) {
-      console.error('Error adding class:', error)
-      setError(error instanceof Error ? error.message : 'Failed to add class')
+
+      onSuccess()
+      onClose()
+    } catch (submitError) {
+      console.error('Error adding class:', submitError)
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Failed to add class.'
+      )
     } finally {
       setLoading(false)
     }
@@ -120,149 +184,180 @@ export const AddClassModal = ({ isOpen, onClose, onSuccess, schoolId }: AddClass
 
   if (!isOpen) return null
 
-  const levelFormOptions = [
-    'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 6',
-    'Lower Six', 'Upper Six', 'O-Level', 'A-Level', 'Primary',
-  ]
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto border-2 border-gray-300">
-        <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center z-10">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border-2 border-gray-300 bg-white sm:max-h-[90vh]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-gray-300 bg-white px-6 py-4">
           <h2 className="text-xl font-bold text-gray-800">Add New Class</h2>
+
           <button
+            type="button"
             onClick={onClose}
+            disabled={loading}
             aria-label="Close"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
+            className="rounded-lg border-2 border-gray-300 p-2 hover:bg-gray-100 disabled:opacity-50"
           >
-            <X className="w-5 h-5 text-red-500" />
+            <X className="h-5 w-5 text-red-500" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center gap-2 border-2 border-red-200">
-            <AlertCircle className="w-4 h-4" />
+          <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border-2 border-red-200 border-l-4 border-l-red-500 bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Class Name *</label>
-              <div className="relative">
-                <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="e.g., Mathematics A, Science B"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teacher *</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.teacherId}
-                  onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
-                  required
-                >
-                  <option value="" className="text-blue-950">Select Teacher</option>
-                  {loadingTeachers ? (
-                    <option disabled className="text-blue-950">Loading teachers...</option>
-                  ) : teachers.length === 0 ? (
-                    <option disabled className="text-blue-950">No available teachers. All teachers are assigned to classes.</option>
-                  ) : (
-                    teachers.map((teacher) => {
-                      const fullName = teacher.FirstName && teacher.LastName 
-                        ? `${teacher.FirstName} ${teacher.LastName}`
-                        : teacher.Email || `Teacher ${teacher.$id.slice(-6)}`
-                      return (
-                        <option key={teacher.$id} value={teacher.$id} className="text-blue-950">
-                          {fullName}
-                        </option>
-                      )
-                    })
-                  )}
-                </select>
-              </div>
-              {teachers.length === 0 && !loadingTeachers && (
-                <p className="text-xs text-yellow-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  All teachers are currently assigned to classes. Each teacher can only have one class.
-                </p>
-              )}
-              {!loadingTeachers && teachers.length > 0 && (
-                <p className="text-[10px] text-green-600 mt-1">
-                  Showing {teachers.length} available teacher(s) not assigned to any class
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Level or Form *</label>
-              <div className="relative">
-                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.levelOrForm}
-                  onChange={(e) => setFormData({ ...formData, levelOrForm: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
-                  required
-                >
-                  <option value="" className="text-blue-950">Select Level or Form</option>
-                  {levelFormOptions.map((option) => (
-                    <option key={option} value={option} className="text-blue-950">
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room *</label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.room}
-                  onChange={(e) => setFormData({ ...formData, room: e.target.value.toUpperCase() })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] uppercase"
-                  placeholder="e.g., ROOM 101, A1"
-                />
-              </div>
-              <p className="text-[10px] text-gray-400 mt-1">Will be automatically converted to uppercase</p>
+        <form onSubmit={handleSubmit} className="space-y-4 p-6">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Class Name *
+            </label>
+            <div className="relative">
+              <School className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                required
+                value={formData.name}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    name: event.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                placeholder="e.g., Mathematics A"
+              />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-300">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Teacher *
+            </label>
+            <div className="relative">
+              <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <select
+                required
+                value={formData.teacherId}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    teacherId: event.target.value,
+                  }))
+                }
+                className="w-full appearance-none rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+              >
+                <option value="">Select Teacher</option>
+                {loadingTeachers ? (
+                  <option disabled>Loading teachers...</option>
+                ) : teachers.length === 0 ? (
+                  <option disabled>No unassigned active teachers</option>
+                ) : (
+                  teachers.map((teacher) => {
+                    const fullName =
+                      `${teacher.FirstName || ''} ${teacher.LastName || ''}`.trim()
+                    const label =
+                      fullName ||
+                      teacher.Email ||
+                      teacher.SubjectSpecialization ||
+                      `Teacher ${teacher.$id.slice(-6)}`
+
+                    return (
+                      <option key={teacher.$id} value={teacher.$id}>
+                        {label}
+                        {teacher.Email && fullName
+                          ? ` (${teacher.Email})`
+                          : ''}
+                      </option>
+                    )
+                  })
+                )}
+              </select>
+            </div>
+
+            {!loadingTeachers && teachers.length === 0 && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-yellow-600">
+                <AlertCircle className="h-3 w-3" />
+                Every active teacher is already assigned to a class.
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Grade *
+            </label>
+            <div className="relative">
+              <BookOpen className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <select
+                required
+                value={formData.levelOrForm}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    levelOrForm: event.target.value,
+                  }))
+                }
+                className="w-full appearance-none rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+              >
+                <option value="">Select grade</option>
+                {LEVEL_FORM_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Room *
+            </label>
+            <div className="relative">
+              <Users className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                required
+                value={formData.room}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    room: event.target.value.toUpperCase(),
+                  }))
+                }
+                className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 uppercase text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                placeholder="e.g., ROOM 101"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 border-t-2 border-gray-300 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
+              disabled={loading}
+              className="rounded-lg border-2 border-gray-300 px-4 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
             >
               Cancel
             </button>
+
             <button
               type="submit"
-              disabled={loading || loadingTeachers || teachers.length === 0}
-              className="px-6 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-[#C75712]"
+              disabled={
+                loading ||
+                loadingTeachers ||
+                teachers.length === 0
+              }
+              className="flex items-center gap-2 rounded-lg border-2 border-[#C75712] bg-[#C75712] px-6 py-2 text-white hover:bg-[#D96A1E] disabled:opacity-50"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Adding...
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4" />
+                  <Check className="h-4 w-4" />
                   Add Class
                 </>
               )}

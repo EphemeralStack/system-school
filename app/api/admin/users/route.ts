@@ -12,6 +12,11 @@ import {
   createAdminAppwriteServices,
   createJwtAppwriteAccount,
 } from '@/lib/appwrite/server'
+import {
+  isZimbabwePrimaryGrade,
+  isZimbabwePrimaryStage,
+  isZimbabweTeacherQualification,
+} from '@/lib/school/primary-school-options'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -98,6 +103,92 @@ function optionalText(
   value: unknown
 ): string {
   return text(value)
+}
+
+
+function normalizePrimaryGrade(
+  value: unknown,
+  label = 'Grade'
+): string {
+  const grade =
+    requiredText(
+      value,
+      label
+    )
+
+  if (
+    !isZimbabwePrimaryGrade(
+      grade
+    )
+  ) {
+    throw new RequestValidationError(
+      `${label} must be ECD A, ECD B or Grade 1 to Grade 7.`
+    )
+  }
+
+  return grade
+}
+
+function normalizePrimaryStage(
+  value: unknown
+): string {
+  const stage =
+    requiredText(
+      value,
+      'Primary stage'
+    )
+
+  if (
+    !isZimbabwePrimaryStage(
+      stage
+    )
+  ) {
+    throw new RequestValidationError(
+      'Primary stage must be Infant Level or Junior Level.'
+    )
+  }
+
+  return stage
+}
+
+function normalizeTeacherQualification(
+  value: unknown
+): string {
+  const qualification =
+    requiredText(
+      value,
+      'Qualification'
+    )
+
+  if (
+    !isZimbabweTeacherQualification(
+      qualification
+    )
+  ) {
+    throw new RequestValidationError(
+      'Select a recognised teaching qualification from the list.'
+    )
+  }
+
+  return qualification
+}
+
+function getDepartmentsTableId(): string {
+  const tableId =
+    process.env
+      .APPWRITE_DEPARTMENTS_TABLE_ID
+      ?.trim() ||
+    process.env
+      .NEXT_PUBLIC_APPWRITE_DEPARTMENTS_COLLECTION_ID
+      ?.trim()
+
+  if (!tableId) {
+    throw new Error(
+      'Missing departments table environment variable.'
+    )
+  }
+
+  return tableId
 }
 
 function addOptionalString(
@@ -444,9 +535,8 @@ function roleTableData(
             .toISOString()
             .slice(0, 10),
         Qualification:
-          requiredText(
-            input.qualification,
-            'Qualification'
+          normalizeTeacherQualification(
+            input.qualification
           ),
         SubjectSpecialization:
           requiredText(
@@ -464,14 +554,12 @@ function roleTableData(
             input.classId
           ),
         Level:
-          requiredText(
-            input.level,
-            'Level'
+          normalizePrimaryStage(
+            input.level
           ),
         Form:
-          requiredText(
-            input.form,
-            'Form'
+          normalizePrimaryGrade(
+            input.form
           ),
         EnrollmentDate:
           optionalText(
@@ -489,9 +577,9 @@ function roleTableData(
         ApplicationNo:
           createApplicationNumber(),
         LevelOrFormApplied:
-          requiredText(
+          normalizePrimaryGrade(
             input.levelOrFormApplied,
-            'Level or form applied for'
+            'Grade applied for'
           ),
         Status: status,
       }
@@ -558,6 +646,72 @@ async function deleteAuthUserSilently(
     return error instanceof Error
       ? error.message
       : String(error)
+  }
+}
+
+
+async function validateTeacherDepartmentReference(
+  tablesDB:
+    ReturnType<
+      typeof createAdminAppwriteServices
+    >['tablesDB'],
+  databaseId: string,
+  departmentsTableId: string,
+  input: ProvisionUserRequest
+): Promise<void> {
+  const departmentId =
+    requiredText(
+      input.departmentId,
+      'Department'
+    )
+
+  const specialization =
+    requiredText(
+      input.subjectSpecialization,
+      'Subject specialization'
+    )
+
+  let department
+
+  try {
+    department =
+      await tablesDB.getRow({
+        databaseId,
+        tableId:
+          departmentsTableId,
+        rowId:
+          departmentId,
+      })
+  } catch (error) {
+    if (
+      appwriteErrorCode(
+        error
+      ) === 404
+    ) {
+      throw new RequestValidationError(
+        'The selected department does not exist.'
+      )
+    }
+
+    throw error
+  }
+
+  const departmentName =
+    requiredText(
+      (
+        department as unknown as
+          Record<string, unknown>
+      ).Name,
+      'Department name'
+    )
+
+  if (
+    departmentName !==
+    specialization
+  ) {
+    throw new RequestValidationError(
+      'Subject specialization must match the selected department.'
+    )
   }
 }
 
@@ -767,6 +921,15 @@ export async function POST(
         role,
         configuration.tables
       )
+
+    if (role === 'teacher') {
+      await validateTeacherDepartmentReference(
+        tablesDB,
+        databaseId,
+        getDepartmentsTableId(),
+        input
+      )
+    }
 
     const roleData =
       roleTableData(

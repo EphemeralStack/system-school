@@ -30,6 +30,7 @@ import {
   provisionUserAsAdmin,
   type ProvisionUserResult,
 } from '@/lib/admin/provision-user'
+import { ZIMBABWE_PRIMARY_GRADES } from '@/lib/school/primary-school-options'
 
 interface AddApplicantModalProps {
   isOpen: boolean
@@ -766,18 +767,15 @@ export const AddApplicantModal = ({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Level or Form Applied *
+                  Grade Applied For *
                 </label>
 
                 <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <BookOpen className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
-                  <input
-                    type="text"
+                  <select
                     required
-                    value={
-                      formData.levelOrFormApplied
-                    }
+                    value={formData.levelOrFormApplied}
                     onChange={(event) =>
                       setFormData(
                         (previous) => ({
@@ -787,9 +785,23 @@ export const AddApplicantModal = ({
                         })
                       )
                     }
-                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
-                    placeholder="e.g. Grade 5 or Form 1"
-                  />
+                    className="w-full appearance-none rounded-lg border-2 border-gray-300 bg-white py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                  >
+                    <option value="">
+                      Select grade
+                    </option>
+
+                    {ZIMBABWE_PRIMARY_GRADES.map(
+                      (grade) => (
+                        <option
+                          key={grade}
+                          value={grade}
+                        >
+                          {grade}
+                        </option>
+                      )
+                    )}
+                  </select>
                 </div>
               </div>
 
