@@ -1,19 +1,22 @@
-# Admin Sidebar and Return Loading Fix
+# Student Enrollment Date Fix
 
-This pack:
+Replace these complete files:
 
-1. Replaces the Academic Matrix sidebar with the same visual structure used by
-   the Global Configuration sidebar.
-2. Stores the loaded school record in browser session storage.
-3. Restores that school record before paint when returning to the dashboard.
-4. Refreshes the record quietly in the background.
+```text
+app/(dashboard)/admin/students/page.tsx
+app/api/admin/students/route.ts
+```
 
-## Install
+The fix:
 
-Extract into the project root and replace the existing
-`AdminWorkspaceShell.tsx`, then run:
+- accepts existing Appwrite ISO date-time values;
+- extracts `YYYY-MM-DD` correctly for the edit input;
+- renders dates without appending a second time component;
+- avoids timezone-driven day shifts;
+- stores edited enrollment dates as valid ISO date-time values.
+
+After replacing the files, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\install-admin-sidebar-return-fix.ps1
 npx tsc --noEmit
 ```

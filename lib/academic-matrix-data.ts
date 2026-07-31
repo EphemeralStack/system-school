@@ -147,6 +147,29 @@ function percentage(part: number, total: number): number {
   return total > 0 ? Math.round((part / total) * 100) : 0
 }
 
+function isSuccessfulPayment(document: Document): boolean {
+  const status = text(document, ['Status', 'status'])
+    .trim()
+    .toLowerCase()
+
+  // Preserve compatibility with historic payment rows that predate Status.
+  if (!status) return true
+
+  return [
+    'approved',
+    'paid',
+    'completed',
+    'complete',
+    'successful',
+    'success',
+    'confirmed',
+  ].some(
+    (acceptedStatus) =>
+      status === acceptedStatus ||
+      status.includes(acceptedStatus)
+  )
+}
+
 export async function loadAcademicMatrixData(): Promise<AcademicMatrixData> {
   const [
     users,
@@ -454,10 +477,12 @@ export async function loadAcademicMatrixData(): Promise<AcademicMatrixData> {
     return capacity
   })
 
-  const paid = payments.reduce(
-    (sum, item) => sum + numberValue(item, ['Amount']),
-    0
-  )
+  const paid = payments
+    .filter(isSuccessfulPayment)
+    .reduce(
+      (sum, item) => sum + numberValue(item, ['Amount']),
+      0
+    )
   const billed = fees.reduce(
     (sum, item) => sum + numberValue(item, ['AmountDue']),
     0

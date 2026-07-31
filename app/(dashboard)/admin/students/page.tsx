@@ -1,509 +1,1244 @@
-// app/(dashboard)/admin/students/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { databases } from '@/lib/appwrite/config'
-import { ID, Query } from 'appwrite'
-import { AddStudentModal } from '@/components/dashboard/AddStudentModal'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react'
+import {
+  Query,
+} from 'appwrite'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Edit,
+  Eye,
+  Filter,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react'
+import {
+  useRouter,
+} from 'next/navigation'
+
+import {
+  AddStudentModal,
+} from '@/components/dashboard/AddStudentModal'
+import {
+  databases,
+} from '@/lib/appwrite/config'
+import {
+  removeStudentAsAdmin,
+  updateStudentAsAdmin,
+  type StudentStatus,
+} from '@/lib/admin/manage-student'
 import {
   ZIMBABWE_PRIMARY_GRADES,
   ZIMBABWE_PRIMARY_STAGES,
   primaryStageForGrade,
 } from '@/lib/school/primary-school-options'
-import { 
-  ArrowLeft, 
-  User, 
-  Search,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Eye,
-  Edit,
-  Plus,
-  Trash2,
-  X,
-  Check,
-  AlertCircle,
-  Mail,
-  Phone,
-  Calendar,
-  BookOpen,
-  School,
-  Filter,
-  Download,
-  Users,
-} from 'lucide-react'
 
-const StudentsPage = () => {
-  const router = useRouter()
-  const [students, setStudents] = useState<any[]>([])
-  const [usersMap, setUsersMap] = useState<Record<string, any>>({})
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
-  const itemsPerPage = 10
+interface StudentDocument {
+  $id: string
+  $createdAt: string
+  $updatedAt?: string
+  userId?: string
+  classId?: string
+  Level?: string
+  Form?: string
+  EnrollmentDate?: string
+  Status?: string
+}
 
-  // Modal states
-  const [selectedStudent, setSelectedStudent] = useState<any>(null)
-  const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [showViewModal, setShowViewModal] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showAddStudentModal, setShowAddStudentModal] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState('')
-  const [successMessage, setSuccessMessage] = useState('')
+interface UserDocument {
+  $id: string
+  FirstName?: string
+  LastName?: string
+  Email?: string
+  Phone?: string
+  avatar?: string
+}
 
-  // Filter states
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
-  const [filterLevel, setFilterLevel] = useState('')
-  const [filterForm, setFilterForm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
+interface EditStudentForm {
+  level: string
+  form: string
+  enrollmentDate: string
+  status: StudentStatus
+}
 
-  // Edit form data
-  const [editFormData, setEditFormData] = useState({
-    level: '',
-    form: '',
-    enrollmentDate: '',
-    status: '',
-  })
+const ITEMS_PER_PAGE = 10
 
-  // Zimbabwe primary stage and grade options
-  const levelOptions = [...ZIMBABWE_PRIMARY_STAGES]
-  const formOptions = [...ZIMBABWE_PRIMARY_GRADES]
+const LEVEL_OPTIONS = [
+  ...ZIMBABWE_PRIMARY_STAGES,
+]
+
+const FORM_OPTIONS = [
+  ...ZIMBABWE_PRIMARY_GRADES,
+]
+
+const STATUS_OPTIONS: Array<{
+  value: StudentStatus
+  label: string
+}> = [
+  {
+    value: 'active',
+    label: 'Active',
+  },
+  {
+    value: 'inactive',
+    label: 'Inactive',
+  },
+  {
+    value: 'suspended',
+    label: 'Suspended',
+  },
+  {
+    value: 'graduated',
+    label: 'Graduated',
+  },
+]
+
+function normalizedStatus(
+  value: string | undefined
+): StudentStatus {
+  const status =
+    value
+      ?.trim()
+      .toLowerCase()
+
+  if (
+    status === 'inactive' ||
+    status === 'suspended' ||
+    status === 'graduated'
+  ) {
+    return status
+  }
+
+  return 'active'
+}
+
+function statusClass(
+  status: string | undefined
+): string {
+  const normalized =
+    normalizedStatus(status)
+
+  const classes:
+    Record<
+      StudentStatus,
+      string
+    > = {
+      active:
+        'bg-green-100 text-green-700',
+      inactive:
+        'bg-gray-100 text-gray-700',
+      suspended:
+        'bg-red-100 text-red-700',
+      graduated:
+        'bg-blue-100 text-blue-700',
+    }
+
+  return classes[normalized]
+}
+
+function dateInputValue(
+  value: string | undefined
+): string {
+  const normalized =
+    value?.trim()
+
+  if (!normalized) {
+    return ''
+  }
+
+  const datePrefix =
+    normalized.match(
+      /^\d{4}-\d{2}-\d{2}/
+    )?.[0]
+
+  if (datePrefix) {
+    return datePrefix
+  }
+
+  const parsed =
+    new Date(normalized)
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return ''
+  }
+
+  return parsed
+    .toISOString()
+    .slice(0, 10)
+}
+
+function displayDate(
+  value: string | undefined
+): string {
+  const dateValue =
+    dateInputValue(value)
+
+  if (!dateValue) {
+    return 'N/A'
+  }
+
+  const [
+    year,
+    month,
+    day,
+  ] =
+    dateValue
+      .split('-')
+      .map(Number)
+
+  const parsed =
+    new Date(
+      year,
+      month - 1,
+      day
+    )
+
+  if (
+    Number.isNaN(
+      parsed.getTime()
+    )
+  ) {
+    return 'N/A'
+  }
+
+  return parsed
+    .toLocaleDateString()
+}
+
+function studentName(
+  student: StudentDocument,
+  users:
+    Record<
+      string,
+      UserDocument
+    >
+): string {
+  const user =
+    student.userId
+      ? users[
+          student.userId
+        ]
+      : undefined
+
+  const fullName =
+    `${user?.FirstName || ''} ${user?.LastName || ''}`
+      .trim()
+
+  return fullName || 'Unknown student'
+}
+
+function studentInitials(
+  student: StudentDocument,
+  users:
+    Record<
+      string,
+      UserDocument
+    >
+): string {
+  const user =
+    student.userId
+      ? users[
+          student.userId
+        ]
+      : undefined
+
+  const initials =
+    `${user?.FirstName?.[0] || ''}${user?.LastName?.[0] || ''}`
+      .toUpperCase()
+
+  return initials || 'S'
+}
+
+function csvValue(
+  value: unknown
+): string {
+  const text =
+    String(value ?? '')
+
+  if (
+    text.includes(',') ||
+    text.includes('"') ||
+    text.includes('\n')
+  ) {
+    return `"${text.replace(
+      /"/g,
+      '""'
+    )}"`
+  }
+
+  return text
+}
+
+export default function StudentsPage() {
+  const router =
+    useRouter()
+
+  const [
+    students,
+    setStudents,
+  ] =
+    useState<
+      StudentDocument[]
+    >([])
+
+  const [
+    usersMap,
+    setUsersMap,
+  ] =
+    useState<
+      Record<
+        string,
+        UserDocument
+      >
+    >({})
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(true)
+
+  const [
+    currentPage,
+    setCurrentPage,
+  ] =
+    useState(1)
+
+  const [
+    totalPages,
+    setTotalPages,
+  ] =
+    useState(1)
+
+  const [
+    totalItems,
+    setTotalItems,
+  ] =
+    useState(0)
+
+  const [
+    searchTerm,
+    setSearchTerm,
+  ] =
+    useState('')
+
+  const [
+    filterLevel,
+    setFilterLevel,
+  ] =
+    useState('')
+
+  const [
+    filterForm,
+    setFilterForm,
+  ] =
+    useState('')
+
+  const [
+    filterStatus,
+    setFilterStatus,
+  ] =
+    useState('')
+
+  const [
+    showFilters,
+    setShowFilters,
+  ] =
+    useState(false)
+
+  const [
+    selectedStudent,
+    setSelectedStudent,
+  ] =
+    useState<
+      StudentDocument | null
+    >(null)
+
+  const [
+    showViewModal,
+    setShowViewModal,
+  ] =
+    useState(false)
+
+  const [
+    showEditModal,
+    setShowEditModal,
+  ] =
+    useState(false)
+
+  const [
+    showRemoveModal,
+    setShowRemoveModal,
+  ] =
+    useState(false)
+
+  const [
+    showAddModal,
+    setShowAddModal,
+  ] =
+    useState(false)
+
+  const [
+    submitting,
+    setSubmitting,
+  ] =
+    useState(false)
+
+  const [
+    error,
+    setError,
+  ] =
+    useState('')
+
+  const [
+    successMessage,
+    setSuccessMessage,
+  ] =
+    useState('')
+
+  const [
+    editForm,
+    setEditForm,
+  ] =
+    useState<EditStudentForm>({
+      level: '',
+      form: '',
+      enrollmentDate: '',
+      status: 'active',
+    })
+
+  const fetchUsers =
+    useCallback(
+      async (
+        userIds: string[]
+      ) => {
+        const uniqueIds = [
+          ...new Set(
+            userIds.filter(Boolean)
+          ),
+        ]
+
+        const entries =
+          await Promise.all(
+            uniqueIds.map(
+              async (userId) => {
+                try {
+                  const result =
+                    await databases.listDocuments(
+                      process.env
+                        .NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+                      process.env
+                        .NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
+                      [
+                        Query.equal(
+                          '$id',
+                          userId
+                        ),
+                        Query.limit(1),
+                      ]
+                    )
+
+                  const user =
+                    result.documents[0] as
+                      | unknown
+                      | undefined
+
+                  return user
+                    ? [
+                        userId,
+                        user as UserDocument,
+                      ] as const
+                    : null
+                } catch (userError) {
+                  console.error(
+                    `Could not load user ${userId}:`,
+                    userError
+                  )
+
+                  return null
+                }
+              }
+            )
+          )
+
+        return Object.fromEntries(
+          entries.filter(
+            (
+              entry
+            ): entry is readonly [
+              string,
+              UserDocument,
+            ] =>
+              entry !== null
+          )
+        )
+      },
+      []
+    )
+
+  const fetchStudents =
+    useCallback(
+      async () => {
+        setLoading(true)
+        setError('')
+
+        try {
+          const response =
+            await databases.listDocuments(
+              process.env
+                .NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+              process.env
+                .NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
+              [
+                Query.limit(
+                  ITEMS_PER_PAGE
+                ),
+                Query.offset(
+                  (
+                    currentPage -
+                    1
+                  ) *
+                    ITEMS_PER_PAGE
+                ),
+                Query.orderDesc(
+                  '$createdAt'
+                ),
+              ]
+            )
+
+          const rows =
+            response.documents as unknown as StudentDocument[]
+
+          setStudents(rows)
+          setTotalItems(
+            response.total
+          )
+          setTotalPages(
+            Math.max(
+              1,
+              Math.ceil(
+                response.total /
+                  ITEMS_PER_PAGE
+              )
+            )
+          )
+
+          const users =
+            await fetchUsers(
+              rows
+                .map(
+                  (student) =>
+                    student.userId ||
+                    ''
+                )
+                .filter(Boolean)
+            )
+
+          setUsersMap(users)
+        } catch (loadError) {
+          console.error(
+            'Could not load students:',
+            loadError
+          )
+
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Could not load students.'
+          )
+        } finally {
+          setLoading(false)
+        }
+      },
+      [
+        currentPage,
+        fetchUsers,
+      ]
+    )
 
   useEffect(() => {
-    fetchStudents()
-  }, [currentPage])
+    void fetchStudents()
+  }, [fetchStudents])
 
-  // Fetch user details from Users collection
-  const fetchUserDetails = async (userId: string) => {
-    try {
-      if (!userId) return null
-      
-      const userResponse = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        [Query.equal('$id', userId)]
-      )
-      
-      return userResponse.documents[0] || null
-    } catch (error) {
-      console.error('Error fetching user details:', error)
-      return null
-    }
-  }
+  const filteredStudents =
+    useMemo(() => {
+      const query =
+        searchTerm
+          .trim()
+          .toLowerCase()
 
-  const fetchStudents = async () => {
-    try {
-      setLoading(true)
-      const response = await databases.listDocuments(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-        [
-          Query.limit(itemsPerPage),
-          Query.offset((currentPage - 1) * itemsPerPage),
-          Query.orderDesc('$createdAt')
-        ]
-      )
-      
-      setStudents(response.documents)
-      setTotalPages(Math.ceil(response.total / itemsPerPage))
-      setTotalItems(response.total)
+      return students.filter(
+        (student) => {
+          const user =
+            student.userId
+              ? usersMap[
+                  student.userId
+                ]
+              : undefined
 
-      // Fetch user details for each student
-      const userIds = response.documents
-        .map(student => student.userId)
-        .filter(id => id && id !== '')
+          const searchableText = [
+            studentName(
+              student,
+              usersMap
+            ),
+            user?.Email,
+            user?.Phone,
+            student.Level,
+            student.Form,
+            student.Status,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase()
 
-      const userMap: Record<string, any> = {}
-      for (const id of userIds) {
-        const user = await fetchUserDetails(id)
-        if (user) {
-          userMap[id] = user
+          const matchesSearch =
+            !query ||
+            searchableText.includes(
+              query
+            )
+
+          const matchesLevel =
+            !filterLevel ||
+            student.Level ===
+              filterLevel
+
+          const matchesForm =
+            !filterForm ||
+            student.Form ===
+              filterForm
+
+          const matchesStatus =
+            !filterStatus ||
+            normalizedStatus(
+              student.Status
+            ) ===
+              filterStatus
+
+          return (
+            matchesSearch &&
+            matchesLevel &&
+            matchesForm &&
+            matchesStatus
+          )
         }
-      }
-      setUsersMap(userMap)
+      )
+    }, [
+      students,
+      usersMap,
+      searchTerm,
+      filterLevel,
+      filterForm,
+      filterStatus,
+    ])
 
-    } catch (error) {
-      console.error('Error fetching students:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const pageStats =
+    useMemo(
+      () => ({
+        active:
+          students.filter(
+            (student) =>
+              normalizedStatus(
+                student.Status
+              ) === 'active'
+          ).length,
+        inactive:
+          students.filter(
+            (student) =>
+              normalizedStatus(
+                student.Status
+              ) === 'inactive'
+          ).length,
+        graduated:
+          students.filter(
+            (student) =>
+              normalizedStatus(
+                student.Status
+              ) === 'graduated'
+          ).length,
+      }),
+      [students]
+    )
 
-  // Apply filters
-  const getFilteredStudents = () => {
-    let filtered = students
+  const selectedUser =
+    selectedStudent?.userId
+      ? usersMap[
+          selectedStudent.userId
+        ]
+      : undefined
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(student => {
-        const user = student.userId ? usersMap[student.userId] : null
-        const fullName = user ? `${user.FirstName || ''} ${user.LastName || ''}`.toLowerCase() : ''
-        return (
-          fullName.includes(searchTerm.toLowerCase()) ||
-          student.Level?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          student.Form?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user?.Email?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      })
-    }
-
-    // Level filter
-    if (filterLevel) {
-      filtered = filtered.filter(student => student.Level === filterLevel)
-    }
-
-    // Grade filter
-    if (filterForm) {
-      filtered = filtered.filter(student => student.Form === filterForm)
-    }
-
-    // Status filter
-    if (filterStatus) {
-      filtered = filtered.filter(student => student.Status === filterStatus)
-    }
-
-    return filtered
-  }
-
-  const filteredStudents = getFilteredStudents()
-
-  // Clear all filters
   const clearFilters = () => {
+    setSearchTerm('')
     setFilterLevel('')
     setFilterForm('')
     setFilterStatus('')
-    setSearchTerm('')
-    setShowFilterDropdown(false)
+    setShowFilters(false)
   }
 
-  // Export CSV functionality
-  const exportCSV = () => {
-    const headers = ['#', 'Student Name', 'Email', 'Phone', 'Primary Stage', 'Grade', 'Status', 'Enrollment Date']
-    const rows = filteredStudents.map((student, index) => {
-      const user = student.userId ? usersMap[student.userId] : null
-      const fullName = user ? `${user.FirstName || ''} ${user.LastName || ''}`.trim() : 'Unknown'
-      return [
-        index + 1,
-        fullName,
-        user?.Email || '',
-        user?.Phone || '',
-        student.Level || 'N/A',
-        student.Form || 'N/A',
-        student.Status || 'Active',
-        student.EnrollmentDate ? new Date(student.EnrollmentDate).toLocaleDateString() : 'N/A',
-      ]
-    })
+  const showSuccess = (
+    message: string
+  ) => {
+    setSuccessMessage(
+      message
+    )
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    const url = URL.createObjectURL(blob)
-    link.setAttribute('href', url)
-    link.setAttribute('download', `students_export_${new Date().toISOString().split('T')[0]}.csv`)
-    link.style.visibility = 'hidden'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    window.setTimeout(
+      () =>
+        setSuccessMessage(''),
+      3500
+    )
   }
 
-  const handleView = (student: any) => {
-    setSelectedStudent(student)
-    const user = student.userId ? usersMap[student.userId] : null
-    setSelectedUser(user)
+  const openView = (
+    student: StudentDocument
+  ) => {
+    setSelectedStudent(
+      student
+    )
     setShowViewModal(true)
   }
 
-  const handleEdit = (student: any) => {
-    setSelectedStudent(student)
-    setEditFormData({
-      level: student.Level || '',
-      form: student.Form || '',
-      enrollmentDate: student.EnrollmentDate || new Date().toISOString().split('T')[0],
-      status: student.Status || 'active',
+  const openEdit = (
+    student: StudentDocument
+  ) => {
+    setSelectedStudent(
+      student
+    )
+    setEditForm({
+      level:
+        student.Level || '',
+      form:
+        student.Form || '',
+      enrollmentDate:
+        dateInputValue(
+          student.EnrollmentDate
+        ) ||
+        new Date()
+          .toISOString()
+          .slice(0, 10),
+      status:
+        normalizedStatus(
+          student.Status
+        ),
     })
-    setShowEditModal(true)
     setError('')
+    setShowEditModal(true)
   }
 
-  const handleEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const openRemove = (
+    student: StudentDocument
+  ) => {
+    setSelectedStudent(
+      student
+    )
     setError('')
-    setIsSubmitting(true)
+    setShowRemoveModal(true)
+  }
 
-    try {
-      await databases.updateDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-        selectedStudent.$id,
+  const handleEditSubmit =
+    async (
+      event: FormEvent<HTMLFormElement>
+    ) => {
+      event.preventDefault()
+
+      if (!selectedStudent) {
+        return
+      }
+
+      setSubmitting(true)
+      setError('')
+
+      try {
+        const result =
+          await updateStudentAsAdmin({
+            studentId:
+              selectedStudent.$id,
+            level:
+              editForm.level,
+            form:
+              editForm.form,
+            enrollmentDate:
+              editForm.enrollmentDate,
+            status:
+              editForm.status,
+          })
+
+        setShowEditModal(
+          false
+        )
+        setSelectedStudent(
+          null
+        )
+        showSuccess(
+          result.message
+        )
+
+        await fetchStudents()
+      } catch (updateError) {
+        console.error(
+          'Could not update student:',
+          updateError
+        )
+
+        setError(
+          updateError instanceof Error
+            ? updateError.message
+            : 'Could not update student.'
+        )
+      } finally {
+        setSubmitting(false)
+      }
+    }
+
+  const confirmRemove =
+    async () => {
+      if (!selectedStudent) {
+        return
+      }
+
+      setSubmitting(true)
+      setError('')
+
+      try {
+        const result =
+          await removeStudentAsAdmin(
+            selectedStudent.$id
+          )
+
+        setShowRemoveModal(
+          false
+        )
+        setSelectedStudent(
+          null
+        )
+        showSuccess(
+          result.message
+        )
+
+        if (
+          students.length === 1 &&
+          currentPage > 1
+        ) {
+          setCurrentPage(
+            (page) =>
+              Math.max(
+                1,
+                page - 1
+              )
+          )
+        } else {
+          await fetchStudents()
+        }
+      } catch (removeError) {
+        console.error(
+          'Could not remove student:',
+          removeError
+        )
+
+        setError(
+          removeError instanceof Error
+            ? removeError.message
+            : 'Could not remove student.'
+        )
+      } finally {
+        setSubmitting(false)
+      }
+    }
+
+  const exportCsv = () => {
+    const rows = [
+      [
+        '#',
+        'Student Name',
+        'Email',
+        'Phone',
+        'Primary Stage',
+        'Grade',
+        'Status',
+        'Enrollment Date',
+      ],
+      ...filteredStudents.map(
+        (
+          student,
+          index
+        ) => {
+          const user =
+            student.userId
+              ? usersMap[
+                  student.userId
+                ]
+              : undefined
+
+          return [
+            (
+              currentPage -
+              1
+            ) *
+              ITEMS_PER_PAGE +
+              index +
+              1,
+            studentName(
+              student,
+              usersMap
+            ),
+            user?.Email || '',
+            user?.Phone || '',
+            student.Level || '',
+            student.Form || '',
+            normalizedStatus(
+              student.Status
+            ),
+            dateInputValue(
+              student.EnrollmentDate
+            ),
+          ]
+        }
+      ),
+    ]
+
+    const csv =
+      rows
+        .map((row) =>
+          row
+            .map(csvValue)
+            .join(',')
+        )
+        .join('\n')
+
+    const blob =
+      new Blob(
+        [csv],
         {
-          Level: editFormData.level,
-          Form: editFormData.form,
-          EnrollmentDate: editFormData.enrollmentDate,
-          Status: editFormData.status,
+          type:
+            'text/csv;charset=utf-8;',
         }
       )
 
-      setSuccessMessage('Student updated successfully!')
-      setTimeout(() => setSuccessMessage(''), 3000)
-      setShowEditModal(false)
-      fetchStudents()
-    } catch (error) {
-      console.error('Error updating student:', error)
-      setError(error instanceof Error ? error.message : 'Failed to update student')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleDelete = (student: any) => {
-    setSelectedStudent(student)
-    setShowDeleteModal(true)
-  }
-
-  const confirmDelete = async () => {
-    setIsSubmitting(true)
-    try {
-      await databases.deleteDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID!,
-        selectedStudent.$id
+    const url =
+      URL.createObjectURL(
+        blob
       )
 
-      setSuccessMessage('Student deleted successfully!')
-      setTimeout(() => setSuccessMessage(''), 3000)
-      setShowDeleteModal(false)
-      fetchStudents()
-    } catch (error) {
-      console.error('Error deleting student:', error)
-      setError(error instanceof Error ? error.message : 'Failed to delete student')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+    const link =
+      document.createElement(
+        'a'
+      )
 
-  const handleAddStudentSuccess = () => {
-    setSuccessMessage('Student added successfully!')
-    setTimeout(() => setSuccessMessage(''), 3000)
-    fetchStudents()
-  }
+    link.href = url
+    link.download =
+      `students-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`
 
-  const getStudentName = (studentId: string) => {
-    const student = students.find(s => s.$id === studentId)
-    if (!student) return 'Unknown'
-    const user = student.userId ? usersMap[student.userId] : null
-    if (user) {
-      return `${user.FirstName || ''} ${user.LastName || ''}`.trim() || 'Student'
-    }
-    return 'Student'
-  }
+    document.body.appendChild(
+      link
+    )
+    link.click()
+    link.remove()
 
-  const getStudentInitials = (student: any) => {
-    if (!student) return 'S'
-    const user = student.userId ? usersMap[student.userId] : null
-    if (user) {
-      const initials = (user.FirstName?.[0] || '') + (user.LastName?.[0] || '')
-      if (initials) return initials.toUpperCase()
-    }
-    return 'S'
-  }
-
-  const getStudentAvatar = (student: any) => {
-    if (!student) return null
-    const user = student.userId ? usersMap[student.userId] : null
-    return user?.avatar || null
-  }
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      'active': 'bg-green-100 text-green-700',
-      'inactive': 'bg-gray-100 text-gray-700',
-      'suspended': 'bg-red-100 text-red-700',
-      'graduated': 'bg-blue-100 text-blue-700',
-    }
-    return colors[status] || 'bg-gray-100 text-gray-700'
+    URL.revokeObjectURL(
+      url
+    )
   }
 
   return (
     <div className="min-h-screen bg-[#F5F5F2] p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/admin/dashboard')}
-              className="p-2.5 bg-white rounded-xl shadow-sm hover:shadow-md hover:bg-gray-50 transition-all duration-200"
+              type="button"
+              onClick={() =>
+                router.push(
+                  '/admin/dashboard'
+                )
+              }
+              className="rounded-xl bg-white p-2.5 shadow-sm transition hover:bg-gray-50 hover:shadow-md"
+              aria-label="Back to dashboard"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Students</h1>
-              <p className="text-sm text-gray-500 mt-0.5">Manage all students in your school</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={() => setShowAddStudentModal(true)}
-              className="px-4 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Add Student
-            </button>
-          </div>
-        </div>
 
-        {/* Success/Error Messages */}
-        {successMessage && (
-          <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-xl text-green-700 text-sm flex items-center gap-3 animate-fadeIn">
-            <div className="p-1 bg-green-100 rounded-full">
-              <Check className="w-4 h-4 text-green-600" />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">
+                Students
+              </h1>
+
+              <p className="mt-0.5 text-sm text-gray-500">
+                Manage enrolled primary-school students
+              </p>
             </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowAddModal(true)
+            }
+            className="inline-flex items-center gap-2 rounded-xl bg-[#C75712] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#D96A1E] hover:shadow-md"
+          >
+            <Plus className="h-4 w-4" />
+            Add Student
+          </button>
+        </header>
+
+        {successMessage && (
+          <div className="mb-4 flex items-center gap-3 rounded-xl border-l-4 border-green-500 bg-green-50 p-4 text-sm text-green-700">
+            <span className="rounded-full bg-green-100 p-1">
+              <Check className="h-4 w-4 text-green-600" />
+            </span>
+
             {successMessage}
           </div>
         )}
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-sm flex items-center gap-3 animate-fadeIn">
-            <div className="p-1 bg-red-100 rounded-full">
-              <AlertCircle className="w-4 h-4 text-red-600" />
-            </div>
+          <div className="mb-4 flex items-center gap-3 rounded-xl border-l-4 border-red-500 bg-red-50 p-4 text-sm text-red-700">
+            <span className="rounded-full bg-red-100 p-1">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+            </span>
+
             {error}
           </div>
         )}
 
-        {/* Stats Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Total Students</p>
-            <p className="text-2xl font-bold text-gray-800">{totalItems}</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Active</p>
-            <p className="text-2xl font-bold text-green-600">
-              {students.filter(s => s.Status === 'active').length}
+        <section className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Total Students
             </p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Inactive</p>
-            <p className="text-2xl font-bold text-gray-600">
-              {students.filter(s => s.Status === 'inactive').length}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Graduated</p>
-            <p className="text-2xl font-bold text-blue-600">
-              {students.filter(s => s.Status === 'graduated').length}
-            </p>
-          </div>
-        </div>
 
-        {/* Search and Filter */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-200">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <p className="text-2xl font-bold text-gray-800">
+              {totalItems}
+            </p>
+          </article>
+
+          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Active on page
+            </p>
+
+            <p className="text-2xl font-bold text-green-600">
+              {pageStats.active}
+            </p>
+          </article>
+
+          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Inactive on page
+            </p>
+
+            <p className="text-2xl font-bold text-gray-600">
+              {pageStats.inactive}
+            </p>
+          </article>
+
+          <article className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <p className="text-xs uppercase tracking-wider text-gray-500">
+              Graduated on page
+            </p>
+
+            <p className="text-2xl font-bold text-blue-600">
+              {pageStats.graduated}
+            </p>
+          </article>
+        </section>
+
+        <section className="relative mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <label className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
               <input
-                type="text"
-                placeholder="Search students by name, email, level, or form..."
+                type="search"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C75712]/50 focus:border-[#C75712] transition-all duration-200"
+                onChange={(
+                  event
+                ) =>
+                  setSearchTerm(
+                    event.target.value
+                  )
+                }
+                placeholder="Search by name, email, phone, stage or grade"
+                className="w-full rounded-xl border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 outline-none transition focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
               />
-            </div>
-            <div className="flex gap-2 relative">
+            </label>
+
+            <div className="relative flex gap-2">
               <button
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                className={`px-4 py-2.5 border-2 rounded-xl transition-colors flex items-center gap-2 text-sm font-medium ${
-                  filterLevel || filterForm || filterStatus
+                type="button"
+                onClick={() =>
+                  setShowFilters(
+                    (visible) =>
+                      !visible
+                  )
+                }
+                className={`inline-flex items-center gap-2 rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition ${
+                  filterLevel ||
+                  filterForm ||
+                  filterStatus
                     ? 'border-[#C75712] bg-[#C75712]/10 text-[#C75712]'
-                    : 'border-gray-300 hover:bg-gray-50 text-gray-600'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <Filter className="w-4 h-4" />
+                <Filter className="h-4 w-4" />
                 Filter
-                {(filterLevel || filterForm || filterStatus) && (
-                  <span className="w-2 h-2 bg-[#C75712] rounded-full"></span>
-                )}
               </button>
+
               <button
-                onClick={exportCSV}
-                className="px-4 py-2.5 border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm text-gray-600 font-medium"
+                type="button"
+                onClick={exportCsv}
+                className="inline-flex items-center gap-2 rounded-xl border-2 border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
-                <Download className="w-4 h-4" />
+                <Download className="h-4 w-4" />
                 Export
               </button>
 
-              {/* Filter Dropdown */}
-              {showFilterDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border-2 border-gray-300 z-50 p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-gray-800">Filters</h3>
+              {showFilters && (
+                <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-xl border-2 border-gray-300 bg-white p-4 shadow-xl">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="font-semibold text-gray-800">
+                      Filters
+                    </h2>
+
                     <button
+                      type="button"
                       onClick={clearFilters}
-                      className="text-xs text-[#C75712] hover:underline"
+                      className="text-xs font-medium text-[#C75712] hover:underline"
                     >
                       Clear all
                     </button>
                   </div>
 
-                  {/* Level Filter */}
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Primary Stage</label>
+                  <label className="mb-3 block">
+                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                      Primary Stage
+                    </span>
+
                     <select
                       value={filterLevel}
-                      onChange={(e) => setFilterLevel(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
+                      onChange={(
+                        event
+                      ) =>
+                        setFilterLevel(
+                          event.target.value
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-sm text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
                     >
-                      <option value="" className="text-blue-950">All Primary Stages</option>
-                      {levelOptions.map((option) => (
-                        <option key={option} value={option} className="text-blue-950">{option}</option>
-                      ))}
-                    </select>
-                  </div>
+                      <option value="">
+                        All stages
+                      </option>
 
-                  {/* Grade Filter */}
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Grade</label>
+                      {LEVEL_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={option}
+                            value={option}
+                          >
+                            {option}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+
+                  <label className="mb-3 block">
+                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                      Grade
+                    </span>
+
                     <select
                       value={filterForm}
-                      onChange={(e) => setFilterForm(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
+                      onChange={(
+                        event
+                      ) =>
+                        setFilterForm(
+                          event.target.value
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-sm text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
                     >
-                      <option value="" className="text-blue-950">All Grades</option>
-                      {formOptions.map((option) => (
-                        <option key={option} value={option} className="text-blue-950">{option}</option>
-                      ))}
-                    </select>
-                  </div>
+                      <option value="">
+                        All grades
+                      </option>
 
-                  {/* Status Filter */}
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
+                      {FORM_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={option}
+                            value={option}
+                          >
+                            {option}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+
+                  <label className="mb-4 block">
+                    <span className="mb-1 block text-xs font-medium text-gray-600">
+                      Status
+                    </span>
+
                     <select
                       value={filterStatus}
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-sm text-blue-950"
+                      onChange={(
+                        event
+                      ) =>
+                        setFilterStatus(
+                          event.target.value
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-sm text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
                     >
-                      <option value="" className="text-blue-950">All Status</option>
-                      <option value="active" className="text-blue-950">Active</option>
-                      <option value="inactive" className="text-blue-950">Inactive</option>
-                      <option value="suspended" className="text-blue-950">Suspended</option>
-                      <option value="graduated" className="text-blue-950">Graduated</option>
+                      <option value="">
+                        All statuses
+                      </option>
+
+                      {STATUS_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={
+                              option.value
+                            }
+                            value={
+                              option.value
+                            }
+                          >
+                            {option.label}
+                          </option>
+                        )
+                      )}
                     </select>
-                  </div>
+                  </label>
 
                   <button
-                    onClick={() => setShowFilterDropdown(false)}
-                    className="w-full mt-2 px-4 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors text-sm font-medium"
+                    type="button"
+                    onClick={() =>
+                      setShowFilters(
+                        false
+                      )
+                    }
+                    className="w-full rounded-lg bg-[#C75712] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#D96A1E]"
                   >
                     Apply Filters
                   </button>
@@ -511,420 +1246,644 @@ const StudentsPage = () => {
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Students Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border-2 border-gray-300">
+        <section className="overflow-hidden rounded-xl border-2 border-gray-300 bg-white shadow-sm">
           {loading ? (
-            <div className="flex justify-center py-16">
-              <div className="flex flex-col items-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-[#C75712]" />
-                <p className="text-sm text-gray-500">Loading students...</p>
-              </div>
+            <div className="flex flex-col items-center justify-center gap-3 py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-[#C75712]" />
+
+              <p className="text-sm text-gray-500">
+                Loading students...
+              </p>
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <User className="w-8 h-8 text-gray-400" />
-              </div>
-              <p className="text-gray-500 font-medium">No students found</p>
-              <p className="text-sm text-gray-400 mt-1">Try adjusting your search or add a new student</p>
+            <div className="py-16 text-center">
+              <span className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                <User className="h-8 w-8 text-gray-400" />
+              </span>
+
+              <p className="font-medium text-gray-500">
+                No students found
+              </p>
+
+              <p className="mt-1 text-sm text-gray-400">
+                Adjust the filters or add a student.
+              </p>
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
+                <table className="w-full min-w-[940px] border-collapse">
                   <thead>
-                    <tr className="bg-gradient-to-r from-gray-50 to-gray-100/50 border-b-2 border-gray-300">
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">#</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Student</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Primary Stage</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Grade</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Status</th>
-                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-200">Enrollment Date</th>
-                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                    <tr className="border-b-2 border-gray-300 bg-gradient-to-r from-gray-50 to-gray-100/50">
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        #
+                      </th>
+
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Student
+                      </th>
+
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Primary Stage
+                      </th>
+
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Grade
+                      </th>
+
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Status
+                      </th>
+
+                      <th className="border-r border-gray-200 px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Enrollment Date
+                      </th>
+
+                      <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-600">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
+
                   <tbody className="divide-y divide-gray-200">
-                    {filteredStudents.map((student, index) => {
-                      const user = student.userId ? usersMap[student.userId] : null
-                      const avatarUrl = user?.avatar || null
-                      const fullName = user ? `${user.FirstName || ''} ${user.LastName || ''}`.trim() : 'Unknown'
-                      
-                      return (
-                        <tr 
-                          key={student.$id} 
-                          className="hover:bg-gray-50/70 transition-colors duration-150 group border-b border-gray-200"
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-400 font-medium border-r border-gray-200">
-                            {(currentPage - 1) * itemsPerPage + index + 1}
-                          </td>
-                          <td className="px-6 py-4 border-r border-gray-200">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#232A42] to-[#3a4466] flex items-center justify-center text-white text-xs font-bold overflow-hidden flex-shrink-0 shadow-sm border-2 border-gray-300">
-                                {avatarUrl ? (
-                                  <img 
-                                    src={avatarUrl} 
-                                    alt={fullName}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  getStudentInitials(student)
+                    {filteredStudents.map(
+                      (
+                        student,
+                        index
+                      ) => {
+                        const user =
+                          student.userId
+                            ? usersMap[
+                                student.userId
+                              ]
+                            : undefined
+
+                        const name =
+                          studentName(
+                            student,
+                            usersMap
+                          )
+
+                        return (
+                          <tr
+                            key={
+                              student.$id
+                            }
+                            className="group transition hover:bg-gray-50/70"
+                          >
+                            <td className="border-r border-gray-200 px-6 py-4 text-sm font-medium text-gray-400">
+                              {(
+                                currentPage -
+                                1
+                              ) *
+                                ITEMS_PER_PAGE +
+                                index +
+                                1}
+                            </td>
+
+                            <td className="border-r border-gray-200 px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gray-300 bg-gradient-to-br from-[#232A42] to-[#3a4466] text-xs font-bold text-white shadow-sm">
+                                  {user?.avatar ? (
+                                    <img
+                                      src={
+                                        user.avatar
+                                      }
+                                      alt={name}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    studentInitials(
+                                      student,
+                                      usersMap
+                                    )
+                                  )}
+                                </span>
+
+                                <span className="min-w-0">
+                                  <strong className="block truncate text-sm font-medium text-gray-800">
+                                    {name}
+                                  </strong>
+
+                                  <span className="block max-w-[220px] truncate text-xs text-gray-400">
+                                    {user?.Email ||
+                                      'No email recorded'}
+                                  </span>
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="border-r border-gray-200 px-6 py-4 text-sm text-gray-800">
+                              {student.Level ||
+                                'N/A'}
+                            </td>
+
+                            <td className="border-r border-gray-200 px-6 py-4 text-sm text-gray-800">
+                              {student.Form ||
+                                'N/A'}
+                            </td>
+
+                            <td className="border-r border-gray-200 px-6 py-4">
+                              <span
+                                className={`inline-flex rounded-full px-3 py-1 text-xs font-medium capitalize ${statusClass(
+                                  student.Status
+                                )}`}
+                              >
+                                {normalizedStatus(
+                                  student.Status
                                 )}
+                              </span>
+                            </td>
+
+                            <td className="border-r border-gray-200 px-6 py-4 text-sm text-gray-800">
+                              {displayDate(
+                                student.EnrollmentDate
+                              )}
+                            </td>
+
+                            <td className="px-6 py-4">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openView(
+                                      student
+                                    )
+                                  }
+                                  className="rounded-lg p-2 text-blue-600 opacity-70 transition hover:bg-blue-50 hover:text-blue-700 group-hover:opacity-100"
+                                  title="View student"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openEdit(
+                                      student
+                                    )
+                                  }
+                                  className="rounded-lg p-2 text-green-600 opacity-70 transition hover:bg-green-50 hover:text-green-700 group-hover:opacity-100"
+                                  title="Edit student"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openRemove(
+                                      student
+                                    )
+                                  }
+                                  className="rounded-lg p-2 text-red-600 opacity-70 transition hover:bg-red-50 hover:text-red-700 group-hover:opacity-100"
+                                  title="Remove student role"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
                               </div>
-                              <div className="min-w-0">
-                                <div className="font-medium text-sm text-gray-800 truncate">
-                                  {fullName}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-gray-400">
-                                  {user?.Email && (
-                                    <span className="truncate max-w-[120px]">{user.Email}</span>
-                                  )}
-                                  {user?.Phone && (
-                                    <span className="hidden sm:inline">• {user.Phone}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 border-r border-gray-200">
-                            <span className="text-sm text-gray-800">
-                              {student.Level || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 border-r border-gray-200">
-                            <span className="text-sm text-gray-800">
-                              {student.Form || 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 border-r border-gray-200">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(student.Status)}`}>
-                              {student.Status || 'Active'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 border-r border-gray-200">
-                            <span className="text-sm text-gray-800">
-                              {student.EnrollmentDate 
-                                ? new Date(student.EnrollmentDate).toLocaleDateString()
-                                : 'N/A'
-                              }
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={() => handleView(student)}
-                                className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 opacity-60 group-hover:opacity-100"
-                                title="View Details"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleEdit(student)}
-                                className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-all duration-200 opacity-60 group-hover:opacity-100"
-                                title="Edit Student"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(student)}
-                                className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-60 group-hover:opacity-100"
-                                title="Delete Student"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                            </td>
+                          </tr>
+                        )
+                      }
+                    )}
                   </tbody>
                 </table>
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
-                <div className="px-6 py-4 border-t-2 border-gray-300 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50">
-                  <div className="text-sm text-gray-500">
-                    Showing <span className="font-medium text-gray-700">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-                    <span className="font-medium text-gray-700">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
-                    <span className="font-medium text-gray-700">{totalItems}</span> students
-                  </div>
+                <footer className="flex flex-col items-center justify-between gap-4 border-t-2 border-gray-300 bg-gray-50/50 px-6 py-4 sm:flex-row">
+                  <p className="text-sm text-gray-500">
+                    Page{' '}
+                    <strong className="text-gray-700">
+                      {currentPage}
+                    </strong>{' '}
+                    of{' '}
+                    <strong className="text-gray-700">
+                      {totalPages}
+                    </strong>
+                  </p>
+
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3 py-1.5 border-2 border-gray-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm flex items-center gap-1 font-medium"
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(
+                          (page) =>
+                            Math.max(
+                              1,
+                              page - 1
+                            )
+                        )
+                      }
+                      disabled={
+                        currentPage === 1
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="h-4 w-4" />
                       Previous
                     </button>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum
-                        if (totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i
-                        } else {
-                          pageNum = currentPage - 2 + i
-                        }
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`w-8 h-8 rounded-lg text-sm transition-all duration-200 border-2 ${
-                              currentPage === pageNum
-                                ? 'bg-[#C75712] text-white border-[#C75712] shadow-sm'
-                                : 'hover:bg-gray-200 text-gray-600 border-gray-300'
-                            }`}
-                          >
-                            {pageNum}
-                          </button>
-                        )
-                      })}
-                    </div>
+
                     <button
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 border-2 border-gray-300 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white transition-colors text-sm flex items-center gap-1 font-medium"
+                      type="button"
+                      onClick={() =>
+                        setCurrentPage(
+                          (page) =>
+                            Math.min(
+                              totalPages,
+                              page + 1
+                            )
+                        )
+                      }
+                      disabled={
+                        currentPage ===
+                        totalPages
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       Next
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="h-4 w-4" />
                     </button>
                   </div>
-                </div>
+                </footer>
               )}
             </>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* View Modal */}
-      {showViewModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border-2 border-gray-300">
-            <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C75712]/10 to-[#C75712]/5 flex items-center justify-center border-2 border-gray-300">
-                  <User className="w-5 h-5 text-[#C75712]" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-800">Student Details</h2>
-              </div>
-              <button
-                onClick={() => setShowViewModal(false)}
-                className="p-2 bg-red-400 rounded-lg "
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedUser ? `${selectedUser.FirstName || ''} ${selectedUser.LastName || ''}`.trim() : 'Unknown'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedUser?.Email || 'N/A'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedUser?.Phone || 'N/A'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Primary Stage</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedStudent.Level || 'N/A'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedStudent.Form || 'N/A'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
-                  <p className="p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedStudent.Status)}`}>
-                      {selectedStudent.Status || 'Active'}
-                    </span>
-                  </p>
-                </div>
-                <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment Date</label>
-                  <p className="text-lg font-semibold text-gray-800 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                    {selectedStudent.EnrollmentDate 
-                      ? new Date(selectedStudent.EnrollmentDate).toLocaleDateString()
-                      : 'N/A'
-                    }
-                  </p>
-                </div>
-              </div>
-              <div className="pt-4 border-t-2 border-gray-300">
-                <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Created</label>
-                <p className="text-sm text-gray-600 mt-1 p-2 bg-gray-50 rounded-lg border border-gray-300">
-                  {new Date(selectedStudent.$createdAt).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {showViewModal &&
+        selectedStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <article className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border-2 border-gray-300 bg-white shadow-2xl">
+              <header className="sticky top-0 flex items-center justify-between border-b-2 border-gray-300 bg-white px-6 py-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Student Details
+                </h2>
 
-      {/* Edit Modal */}
-      {showEditModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-gray-300">
-            <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-800">Edit Student</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 bg-red-500 rounded-lg  border-2 "
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center gap-2 border-2 border-red-200">
-                  <AlertCircle className="w-4 h-4" />
-                  {error}
-                </div>
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Primary Stage</label>
-                  <select
-                    value={editFormData.level}
-                    onChange={(e) => setEditFormData({ ...editFormData, level: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-blue-950"
-                  >
-                    <option value="" className="text-blue-950">Select primary stage</option>
-                    {levelOptions.map((option) => (
-                      <option key={option} value={option} className="text-blue-950">{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Grade</label>
-                  <select
-                    value={editFormData.form}
-                    onChange={(e) =>
-                      setEditFormData({
-                        ...editFormData,
-                        form: e.target.value,
-                        level:
-                          primaryStageForGrade(e.target.value) ||
-                          editFormData.level,
-                      })
-                    }
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-blue-950"
-                  >
-                    <option value="" className="text-blue-950">Select grade</option>
-                    {formOptions.map((option) => (
-                      <option key={option} value={option} className="text-blue-950">{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Date</label>
-                  <input
-                    type="date"
-                    value={editFormData.enrollmentDate}
-                    onChange={(e) => setEditFormData({ ...editFormData, enrollmentDate: e.target.value })}
-                    className="w-full text-blue-950 px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={editFormData.status}
-                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] text-blue-950"
-                  >
-                    <option value="active" className="text-blue-950">Active</option>
-                    <option value="inactive" className="text-blue-950">Inactive</option>
-                    <option value="suspended" className="text-blue-950">Suspended</option>
-                    <option value="graduated" className="text-blue-950">Graduated</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-300">
                 <button
                   type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
+                  onClick={() =>
+                    setShowViewModal(
+                      false
+                    )
+                  }
+                  className="rounded-lg bg-red-500 p-2 text-white"
+                  aria-label="Close"
                 >
-                  Cancel
+                  <X className="h-5 w-5" />
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-[#C75712]"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Update Student
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </header>
 
-      {/* Delete Modal */}
-      {showDeleteModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md border-2 border-gray-300">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-red-100 rounded-full border-2 border-red-300">
-                  <Trash2 className="w-6 h-6 text-red-600" />
+              <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                {[
+                  [
+                    'Full Name',
+                    studentName(
+                      selectedStudent,
+                      usersMap
+                    ),
+                  ],
+                  [
+                    'Email',
+                    selectedUser?.Email ||
+                      'N/A',
+                  ],
+                  [
+                    'Phone',
+                    selectedUser?.Phone ||
+                      'N/A',
+                  ],
+                  [
+                    'Primary Stage',
+                    selectedStudent.Level ||
+                      'N/A',
+                  ],
+                  [
+                    'Grade',
+                    selectedStudent.Form ||
+                      'N/A',
+                  ],
+                  [
+                    'Status',
+                    normalizedStatus(
+                      selectedStudent.Status
+                    ),
+                  ],
+                  [
+                    'Enrollment Date',
+                    displayDate(
+                      selectedStudent.EnrollmentDate
+                    ),
+                  ],
+                  [
+                    'Created',
+                    new Date(
+                      selectedStudent.$createdAt
+                    ).toLocaleString(),
+                  ],
+                ].map(
+                  ([
+                    label,
+                    value,
+                  ]) => (
+                    <div
+                      key={label}
+                      className="space-y-1"
+                    >
+                      <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                        {label}
+                      </p>
+
+                      <p className="rounded-lg border border-gray-300 bg-gray-50 p-3 font-semibold capitalize text-gray-800">
+                        {value}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+            </article>
+          </div>
+        )}
+
+      {showEditModal &&
+        selectedStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <article className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border-2 border-gray-300 bg-white shadow-2xl">
+              <header className="sticky top-0 flex items-center justify-between border-b-2 border-gray-300 bg-white px-6 py-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Edit Student
+                </h2>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowEditModal(
+                      false
+                    )
+                  }
+                  className="rounded-lg bg-red-500 p-2 text-white"
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </header>
+
+              <form
+                onSubmit={
+                  handleEditSubmit
+                }
+                className="space-y-4 p-6"
+              >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <label>
+                    <span className="mb-1 block text-sm font-medium text-gray-700">
+                      Grade
+                    </span>
+
+                    <select
+                      required
+                      value={
+                        editForm.form
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        const form =
+                          event.target
+                            .value
+
+                        setEditForm(
+                          (current) => ({
+                            ...current,
+                            form,
+                            level:
+                              primaryStageForGrade(
+                                form
+                              ) ||
+                              current.level,
+                          })
+                        )
+                      }}
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
+                    >
+                      <option value="">
+                        Select grade
+                      </option>
+
+                      {FORM_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={option}
+                            value={option}
+                          >
+                            {option}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-sm font-medium text-gray-700">
+                      Primary Stage
+                    </span>
+
+                    <input
+                      readOnly
+                      value={
+                        editForm.level
+                      }
+                      className="w-full cursor-not-allowed rounded-lg border-2 border-gray-300 bg-gray-100 px-3 py-2 text-gray-700"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-sm font-medium text-gray-700">
+                      Enrollment Date
+                    </span>
+
+                    <input
+                      required
+                      type="date"
+                      value={
+                        editForm.enrollmentDate
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setEditForm(
+                          (current) => ({
+                            ...current,
+                            enrollmentDate:
+                              event.target
+                                .value,
+                          })
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
+                    />
+                  </label>
+
+                  <label>
+                    <span className="mb-1 block text-sm font-medium text-gray-700">
+                      Status
+                    </span>
+
+                    <select
+                      value={
+                        editForm.status
+                      }
+                      onChange={(
+                        event
+                      ) =>
+                        setEditForm(
+                          (current) => ({
+                            ...current,
+                            status:
+                              event.target
+                                .value as StudentStatus,
+                          })
+                        )
+                      }
+                      className="w-full rounded-lg border-2 border-gray-300 px-3 py-2 text-blue-950 outline-none focus:border-[#C75712] focus:ring-2 focus:ring-[#C75712]/30"
+                    >
+                      {STATUS_OPTIONS.map(
+                        (option) => (
+                          <option
+                            key={
+                              option.value
+                            }
+                            value={
+                              option.value
+                            }
+                          >
+                            {option.label}
+                          </option>
+                        )
+                      )}
+                    </select>
+                  </label>
                 </div>
-                <h2 className="text-xl font-bold text-gray-800">Delete Student</h2>
-              </div>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete this student? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  disabled={isSubmitting}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-red-600"
-                >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Add Student Modal */}
+                <footer className="flex justify-end gap-3 border-t-2 border-gray-300 pt-4">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowEditModal(
+                        false
+                      )
+                    }
+                    className="rounded-lg border-2 border-gray-300 px-4 py-2 text-gray-600 transition hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      submitting
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border-2 border-[#C75712] bg-[#C75712] px-6 py-2 text-white transition hover:bg-[#D96A1E] disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
+
+                    Update Student
+                  </button>
+                </footer>
+              </form>
+            </article>
+          </div>
+        )}
+
+      {showRemoveModal &&
+        selectedStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <article className="w-full max-w-lg rounded-2xl border-2 border-gray-300 bg-white shadow-2xl">
+              <div className="p-6">
+                <div className="mb-4 flex items-center gap-3">
+                  <span className="rounded-full border-2 border-red-300 bg-red-100 p-2">
+                    <Trash2 className="h-6 w-6 text-red-600" />
+                  </span>
+
+                  <h2 className="text-xl font-bold text-gray-800">
+                    Remove Student Role
+                  </h2>
+                </div>
+
+                <p className="mb-3 text-gray-700">
+                  Remove{' '}
+                  <strong>
+                    {studentName(
+                      selectedStudent,
+                      usersMap
+                    )}
+                  </strong>{' '}
+                  from the students table?
+                </p>
+
+                <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                  Linked Appwrite Auth and user-profile records are retained for audit. Removal is blocked while attendance, subjects, marks, fees, discipline, hostel or transport records still reference this student.
+                </p>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowRemoveModal(
+                        false
+                      )
+                    }
+                    className="rounded-lg border-2 border-gray-300 px-4 py-2 text-gray-600 transition hover:bg-gray-100"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void confirmRemove()
+                    }
+                    disabled={
+                      submitting
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border-2 border-red-600 bg-red-600 px-6 py-2 text-white transition hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {submitting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+
+                    Remove Role
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+        )}
+
       <AddStudentModal
-        isOpen={showAddStudentModal}
-        onClose={() => setShowAddStudentModal(false)}
-        onSuccess={handleAddStudentSuccess}
+        isOpen={showAddModal}
+        onClose={() =>
+          setShowAddModal(false)
+        }
+        onSuccess={() => {
+          setShowAddModal(false)
+          showSuccess(
+            'Student added successfully.'
+          )
+          void fetchStudents()
+        }}
         schoolId=""
       />
     </div>
   )
 }
-
-export default StudentsPage
