@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AlertTriangle,
@@ -76,6 +76,8 @@ const EMPTY_FINANCIAL_DATA: FinancialData = {
   collectionRate: 0,
   monthlyTrend: [0, 0, 0, 0, 0, 0],
 };
+
+const DEFAULT_LEDGER_ROW_LIMIT = 5;
 
 function collectionId(
   fallback: string,
@@ -434,7 +436,9 @@ export default function FinancialAuditDesk() {
 
   const [filtersOpen, setFiltersOpen] = useState(true);
 
-  const [showAll, setShowAll] = useState(false);
+  const [ledgerRowLimit, setLedgerRowLimit] = useState(
+    DEFAULT_LEDGER_ROW_LIMIT,
+  );
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -444,6 +448,7 @@ export default function FinancialAuditDesk() {
 
   const reload = useCallback(async () => {
     setLoading(true);
+    setLedgerRowLimit(DEFAULT_LEDGER_ROW_LIMIT);
 
     try {
       setData(await loadFinancialData());
@@ -484,7 +489,18 @@ export default function FinancialAuditDesk() {
     });
   }, [data.ledger, query, status]);
 
-  const visibleRows = showAll ? rows : rows.slice(0, 5);
+  const isLedgerExpanded =
+    rows.length > DEFAULT_LEDGER_ROW_LIMIT && ledgerRowLimit >= rows.length;
+
+  const visibleRows = rows.slice(0, Math.min(ledgerRowLimit, rows.length));
+
+  const toggleLedgerRows = () => {
+    setLedgerRowLimit((currentLimit) =>
+      currentLimit > DEFAULT_LEDGER_ROW_LIMIT
+        ? DEFAULT_LEDGER_ROW_LIMIT
+        : Math.max(DEFAULT_LEDGER_ROW_LIMIT, rows.length),
+    );
+  };
 
   const current = data.monthlyTrend.at(-1) || 0;
 
@@ -501,7 +517,7 @@ export default function FinancialAuditDesk() {
     setQuery("");
     setStatus("All");
     setFiltersOpen(true);
-    setShowAll(false);
+    setLedgerRowLimit(DEFAULT_LEDGER_ROW_LIMIT);
   };
 
   const shareLedger = async () => {
@@ -679,14 +695,14 @@ export default function FinancialAuditDesk() {
 
               <ToolbarButton
                 label={
-                  showAll
+                  isLedgerExpanded
                     ? "Show first five records"
                     : "Expand all ledger records"
                 }
-                active={showAll}
-                onClick={() => setShowAll((currentValue) => !currentValue)}
+                active={isLedgerExpanded}
+                onClick={toggleLedgerRows}
               >
-                {showAll ? (
+                {isLedgerExpanded ? (
                   <Minimize2 className="h-4 w-4" />
                 ) : (
                   <Maximize2 className="h-4 w-4" />
@@ -764,7 +780,11 @@ export default function FinancialAuditDesk() {
                 </tr>
               </thead>
 
-              <tbody className="bg-white text-[#20283f]">
+              <tbody
+                className={`bg-white text-[#20283f] ${
+                  isLedgerExpanded ? "" : "[&>tr:nth-child(n+6)]:hidden"
+                }`}
+              >
                 {visibleRows.map((row) => (
                   <tr
                     key={row.id}
@@ -826,20 +846,20 @@ export default function FinancialAuditDesk() {
             </p>
           )}
 
-          {rows.length > 5 && (
+          {rows.length > DEFAULT_LEDGER_ROW_LIMIT && (
             <div className="flex items-center justify-between border-t border-gray-200 pt-4">
               <p className="text-xs font-medium text-gray-500">
-                {showAll
+                {isLedgerExpanded
                   ? `All ${rows.length} records are visible.`
-                  : `The first 5 of ${rows.length} records are visible.`}
+                  : `The first ${DEFAULT_LEDGER_ROW_LIMIT} of ${rows.length} records are visible.`}
               </p>
 
               <button
                 type="button"
-                onClick={() => setShowAll((currentValue) => !currentValue)}
+                onClick={toggleLedgerRows}
                 className="rounded-lg border border-[#20283f] bg-white px-4 py-2 text-xs font-bold text-[#20283f] hover:bg-[#20283f] hover:text-white"
               >
-                {showAll ? "Collapse" : "Show all"}
+                {isLedgerExpanded ? "Collapse" : "Show all"}
               </button>
             </div>
           )}
@@ -862,11 +882,11 @@ export default function FinancialAuditDesk() {
 
                   <div>
                     <p className="text-xs font-semibold text-[#20283f]">
-                      {row.studentName} Â· {row.status}
+                      {row.studentName} · {row.status}
                     </p>
 
                     <p className="text-[10px] font-medium text-gray-500">
-                      {row.date} Â· {money(row.amount)} Â· {row.method}
+                      {row.date} · {money(row.amount)} · {row.method}
                     </p>
                   </div>
                 </li>
@@ -992,7 +1012,7 @@ export function FinancialAuditSidePanel() {
               </p>
 
               <p className="mt-1 text-[8px] text-gray-400">
-                {money(row.amount)} Â· {row.method} Â· {row.date}
+                {money(row.amount)} · {row.method} · {row.date}
               </p>
             </div>
           </article>
@@ -1018,4 +1038,3 @@ export function FinancialAuditSidePanel() {
     </div>
   );
 }
-
