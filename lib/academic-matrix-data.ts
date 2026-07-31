@@ -97,21 +97,31 @@ function initials(name: string): string {
   return `${parts[0]?.[0] || ''}${parts.at(-1)?.[0] || ''}`.toUpperCase()
 }
 
-async function safeList(collection: string): Promise<Document[]> {
-  const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID?.trim()
-  if (!databaseId) return []
+async function listCollectionStrict(
+  collection: string
+): Promise<Document[]> {
+  const databaseId =
+    process.env
+      .NEXT_PUBLIC_APPWRITE_DATABASE_ID
+      ?.trim()
 
-  try {
-    const response = await databases.listDocuments(
+  if (!databaseId) {
+    throw new Error(
+      'Missing NEXT_PUBLIC_APPWRITE_DATABASE_ID'
+    )
+  }
+
+  const response =
+    await databases.listDocuments(
       databaseId,
       collection,
-      [Query.limit(100)]
+      [
+        Query.limit(100),
+      ]
     )
-    return response.documents as unknown as Document[]
-  } catch (error) {
-    console.warn(`Academic Matrix could not load ${collection}:`, error)
-    return []
-  }
+
+  return response
+    .documents as unknown as Document[]
 }
 
 function markScore(document: Document): number | null {
@@ -184,68 +194,68 @@ export async function loadAcademicMatrixData(): Promise<AcademicMatrixData> {
     fees,
     payments,
   ] = await Promise.all([
-    safeList(
+    listCollectionStrict(
       collectionId(
         'users',
         process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'teachers',
         process.env.NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'subjects',
         process.env.NEXT_PUBLIC_APPWRITE_SUBJECTS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'classes',
         process.env.NEXT_PUBLIC_APPWRITE_CLASSES_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'teacher_subjects',
         process.env.NEXT_PUBLIC_APPWRITE_TEACHER_SUBJECTS_COLLECTION_ID,
         process.env.NEXT_PUBLIC_APPWRITE_TEACHERSUBJECTS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'departments',
         process.env.NEXT_PUBLIC_APPWRITE_DEPARTMENTS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'marks',
         process.env.NEXT_PUBLIC_APPWRITE_MARKS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'attendance',
         process.env.NEXT_PUBLIC_APPWRITE_ATTENDANCE_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'inventory',
         process.env.NEXT_PUBLIC_APPWRITE_INVENTORY_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'fees',
         process.env.NEXT_PUBLIC_APPWRITE_FEES_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'payments',
         process.env.NEXT_PUBLIC_APPWRITE_PAYMENTS_COLLECTION_ID

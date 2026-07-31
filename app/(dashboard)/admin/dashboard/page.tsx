@@ -1,4 +1,4 @@
-﻿// app/admin/dashboard/page.tsx
+// app/admin/dashboard/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -398,24 +398,51 @@ const AdminDashboard = () => {
     setShowAddClass(true)
   }
 
+  const refreshAdminSnapshots = (
+    ...eventNames: string[]
+  ) => {
+    eventNames.forEach(
+      (eventName) =>
+        window.dispatchEvent(
+          new CustomEvent(
+            eventName
+          )
+        )
+    )
+  }
+
   // Handle class added successfully
   const handleClassAdded = () => {
-    fetchCounts()
+    refreshAdminSnapshots(
+      'school-suite:refresh-global-dashboard',
+      'school-suite:refresh-academic-matrix'
+    )
   }
 
   // Handle student added successfully
   const handleStudentAdded = () => {
-    fetchCounts()
+    refreshAdminSnapshots(
+      'school-suite:refresh-global-dashboard',
+      'school-suite:refresh-academic-matrix',
+      'user-accounts:refresh'
+    )
   }
 
   // Handle teacher added successfully
   const handleTeacherAdded = () => {
-    fetchCounts()
+    refreshAdminSnapshots(
+      'school-suite:refresh-global-dashboard',
+      'school-suite:refresh-academic-matrix',
+      'user-accounts:refresh'
+    )
   }
 
   // Handle applicant added successfully
   const handleApplicantAdded = () => {
-    fetchCounts()
+    refreshAdminSnapshots(
+      'school-suite:refresh-global-dashboard',
+      'user-accounts:refresh'
+    )
   }
 
   // Navigation handlers

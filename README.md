@@ -1,22 +1,24 @@
-# Student Enrollment Date Fix
+# Admin Persistence Installer — Windows Line-Ending Fix
 
-Replace these complete files:
+Replace:
 
 ```text
-app/(dashboard)/admin/students/page.tsx
-app/api/admin/students/route.ts
+scripts\apply-admin-section-persistence.mjs
 ```
 
-The fix:
+The previous installer safely stopped because the project files use Windows
+`CRLF` line endings while the source matcher expected Unix `LF`.
 
-- accepts existing Appwrite ISO date-time values;
-- extracts `YYYY-MM-DD` correctly for the edit input;
-- renders dates without appending a second time component;
-- avoids timezone-driven day shifts;
-- stores edited enrollment dates as valid ISO date-time values.
+This version:
 
-After replacing the files, run:
+- keeps untouched originals for backup;
+- removes a leading UTF-8 BOM for matching;
+- normalizes CRLF/CR line endings before patching;
+- performs every preflight validation before writing any project file;
+- still makes no partial changes when a matcher fails.
+
+Run:
 
 ```powershell
-npx tsc --noEmit
+node .\scripts\apply-admin-section-persistence.mjs
 ```

@@ -98,9 +98,14 @@ export function readPersistentCache<T>(
         parsed.savedAt,
     }
   } catch {
-    window.localStorage.removeItem(
-      key
-    )
+    try {
+      window.localStorage.removeItem(
+        key
+      )
+    } catch {
+      // Nothing else is required.
+    }
+
     memoryCache.delete(key)
 
     return null
@@ -160,5 +165,64 @@ export function removePersistentCache(
     )
   } catch {
     // Nothing else is required.
+  }
+}
+
+export function clearPersistentCachesByPrefix(
+  prefix: string
+): void {
+  for (
+    const key of
+    memoryCache.keys()
+  ) {
+    if (
+      key.startsWith(
+        prefix
+      )
+    ) {
+      memoryCache.delete(
+        key
+      )
+    }
+  }
+
+  if (!storageAvailable()) {
+    return
+  }
+
+  try {
+    const keysToRemove:
+      string[] = []
+
+    for (
+      let index = 0;
+      index <
+      window.localStorage.length;
+      index += 1
+    ) {
+      const key =
+        window.localStorage.key(
+          index
+        )
+
+      if (
+        key?.startsWith(
+          prefix
+        )
+      ) {
+        keysToRemove.push(
+          key
+        )
+      }
+    }
+
+    keysToRemove.forEach(
+      (key) =>
+        window.localStorage.removeItem(
+          key
+        )
+    )
+  } catch {
+    // Cache cleanup must never block logout.
   }
 }

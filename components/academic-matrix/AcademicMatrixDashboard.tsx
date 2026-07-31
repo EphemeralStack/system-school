@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AlertTriangle,
@@ -32,6 +32,7 @@ import {
   type AcademicMatrixData,
   type ResourceMetric,
 } from "@/lib/academic-matrix-data";
+import { usePersistentSectionData } from "@/lib/client/use-persistent-section-data";
 
 const INITIAL_DATA: AcademicMatrixData = {
   allocations: [],
@@ -346,29 +347,41 @@ function downloadCsv(
 export default function AcademicMatrixDashboard() {
   const [query, setQuery] = useState("");
 
-  const [data, setData] = useState<AcademicMatrixData>(INITIAL_DATA);
+  const {
+    data: cachedData,
+    loading: initialLoading,
+    refreshing,
+    error,
+    refresh,
+  } = usePersistentSectionData<AcademicMatrixData>({
+    cacheKey: "admin-academic-matrix",
+    version: 1,
+    loader: loadAcademicMatrixData,
+    refreshEvents: [
+      "school-suite:refresh-academic-matrix",
+    ],
+  });
 
-  const [loading, setLoading] = useState(true);
+  const data =
+    cachedData ??
+    INITIAL_DATA;
+
+  const loading =
+    initialLoading ||
+    refreshing;
 
   const [locked, setLocked] = useState(false);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const reloadData = useCallback(async () => {
-    setLoading(true);
+  const reloadData =
+    useCallback(
+      async () => {
+        await refresh(true);
+      },
+      [refresh],
+    );
 
-    try {
-      const result = await loadAcademicMatrixData();
-
-      setData(result);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void reloadData();
-  }, [reloadData]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -600,6 +613,25 @@ export default function AcademicMatrixDashboard() {
             ? "success"
             : "info",
     }));
+  if (!cachedData) {
+    return (
+      <AdminWorkspaceShell
+        title="Academic Matrix Setup"
+        activeRoute="academic"
+        searchValue={query}
+        onSearchChange={setQuery}
+        notifications={[]}
+        quickActions={quickActions}
+      >
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-600">
+          {error
+            ? "No saved Academic Matrix data is available. Check the connection and refresh."
+            : "Loading Academic Matrix data..."}
+        </div>
+      </AdminWorkspaceShell>
+    );
+  }
+
   return (
     <AdminWorkspaceShell
       title="Academic Matrix Setup"
@@ -609,10 +641,9 @@ export default function AcademicMatrixDashboard() {
       notifications={liveNotifications}
       quickActions={quickActions}
     >
-      {loading && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          Loading live academic records...
+      {error && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          Showing saved Academic Matrix data because the latest refresh failed.
         </div>
       )}
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import {
   AlertTriangle,
@@ -35,6 +35,7 @@ import {
 } from 'appwrite'
 
 import { databases } from '@/lib/appwrite/config'
+import { usePersistentSectionData } from '@/lib/client/use-persistent-section-data'
 
 type UserRole =
   | 'admin'
@@ -312,35 +313,26 @@ function timeAgo(
   } ago`
 }
 
-async function safeList(
+async function listCollectionStrict(
   id: string
 ): Promise<AppwriteDocument[]> {
-  try {
-    const response =
-      await databases.listDocuments({
-        databaseId:
-          requiredEnvironmentVariable(
-            'NEXT_PUBLIC_APPWRITE_DATABASE_ID',
-            process.env
-              .NEXT_PUBLIC_APPWRITE_DATABASE_ID
-          ),
-        collectionId: id,
-        queries: [
-          Query.orderDesc('$updatedAt'),
-          Query.limit(100),
-        ],
-      })
+  const response =
+    await databases.listDocuments({
+      databaseId:
+        requiredEnvironmentVariable(
+          'NEXT_PUBLIC_APPWRITE_DATABASE_ID',
+          process.env
+            .NEXT_PUBLIC_APPWRITE_DATABASE_ID
+        ),
+      collectionId: id,
+      queries: [
+        Query.orderDesc('$updatedAt'),
+        Query.limit(100),
+      ],
+    })
 
-    return response
-      .documents as AppwriteDocument[]
-  } catch (error) {
-    console.warn(
-      `User Accounts could not read ${id}:`,
-      error
-    )
-
-    return []
-  }
+  return response
+    .documents as AppwriteDocument[]
 }
 
 async function loadUserAccountsData(
@@ -353,35 +345,35 @@ async function loadUserAccountsData(
     studentDocuments,
     applicantDocuments,
   ] = await Promise.all([
-    safeList(
+    listCollectionStrict(
       collectionId(
         'users',
         process.env
           .NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'admins',
         process.env
           .NEXT_PUBLIC_APPWRITE_ADMINS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'teachers',
         process.env
           .NEXT_PUBLIC_APPWRITE_TEACHERS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'students',
         process.env
           .NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID
       )
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         'applicants',
         process.env
@@ -923,13 +915,27 @@ export default function UserAccountsDesk({
 }: {
   schoolId?: string
 } & AddUserCallbacks) {
-  const [data, setData] =
-    useState<UserAccountsData | null>(
-      null
-    )
+  const {
+    data,
+    loading: initialLoading,
+    refreshing,
+    error,
+    refresh,
+  } = usePersistentSectionData<UserAccountsData>({
+    cacheKey: 'admin-user-accounts',
+    version: 1,
+    scope:
+      schoolId ||
+      'single-school',
+    loader: () =>
+      loadUserAccountsData(
+        schoolId
+      ),
+  })
 
-  const [loading, setLoading] =
-    useState(true)
+  const loading =
+    initialLoading ||
+    refreshing
 
   const [query, setQuery] =
     useState('')
@@ -964,23 +970,13 @@ export default function UserAccountsDesk({
     useState('')
 
   const reload =
-    useCallback(async () => {
-      setLoading(true)
+    useCallback(
+      async () => {
+        await refresh(true)
+      },
+      [refresh]
+    )
 
-      try {
-        setData(
-          await loadUserAccountsData(
-            schoolId
-          )
-        )
-      } finally {
-        setLoading(false)
-      }
-    }, [schoolId])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
 
   const filteredUsers = useMemo(() => {
     if (!data) {
@@ -1260,8 +1256,18 @@ export default function UserAccountsDesk({
     }
   }
 
+  if (!data) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-600">
+        {error
+          ? 'No saved user-account data is available. Check the connection and refresh.'
+          : 'Loading user accounts...'}
+      </div>
+    )
+  }
+
   const lockedRatio =
-    data && data.users.length > 0
+    data.users.length > 0
       ? (data.lockedCount /
           data.users.length) *
         100
@@ -1276,6 +1282,11 @@ export default function UserAccountsDesk({
 
   return (
     <div className="space-y-10 pb-10">
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          Showing saved user-account data because the latest refresh failed.
+        </div>
+      )}
       {loading && !data && (
         <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -2035,16 +2046,28 @@ export default function UserAccountsDesk({
 }
 
 export function UserAccountsSidePanel() {
-  const [data, setData] =
-    useState<UserAccountsData | null>(
-      null
-    )
+  const {
+    data,
+    loading,
+    error,
+  } = usePersistentSectionData<UserAccountsData>({
+    cacheKey: 'admin-user-accounts',
+    version: 1,
+    loader: () =>
+      loadUserAccountsData(),
+  })
 
-  useEffect(() => {
-    void loadUserAccountsData().then(
-      setData
+  if (!data) {
+    return (
+      <div className="pt-10 text-xs text-gray-400">
+        {error
+          ? 'Saved account alerts are unavailable.'
+          : loading
+            ? 'Loading account alerts...'
+            : 'No account alerts are available.'}
+      </div>
     )
-  }, [])
+  }
 
   const dispatch = (
     eventName: string

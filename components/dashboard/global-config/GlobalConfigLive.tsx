@@ -1333,6 +1333,7 @@ function useLiveDashboardData():
     data,
     savedAt,
     loading,
+    refreshing,
     error,
     refresh,
   }

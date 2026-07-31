@@ -29,6 +29,7 @@ import {
 import { Query } from "appwrite";
 
 import { databases } from "@/lib/appwrite/config";
+import { usePersistentSectionData } from "@/lib/client/use-persistent-section-data";
 
 type Document = {
   $id: string;
@@ -178,6 +179,35 @@ function normalizeStatus(raw: string): LedgerStatus {
   return "Approved";
 }
 
+function isSuccessfulPayment(
+  payment: Document,
+): boolean {
+  const status = text(
+    payment,
+    ["Status", "status"],
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!status) {
+    return true;
+  }
+
+  return [
+    "approved",
+    "paid",
+    "completed",
+    "complete",
+    "successful",
+    "success",
+    "confirmed",
+  ].some(
+    (accepted) =>
+      status === accepted ||
+      status.includes(accepted),
+  );
+}
+
 function money(value: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -186,19 +216,20 @@ function money(value: number): string {
   }).format(value);
 }
 
-async function safeList(collection: string): Promise<Document[]> {
-  try {
-    const response = await databases.listDocuments(databaseId(), collection, [
-      Query.orderDesc("$createdAt"),
-      Query.limit(100),
-    ]);
+async function listCollectionStrict(
+  collection: string,
+): Promise<Document[]> {
+  const response =
+    await databases.listDocuments(
+      databaseId(),
+      collection,
+      [
+        Query.orderDesc("$createdAt"),
+        Query.limit(100),
+      ],
+    );
 
-    return response.documents as unknown as Document[];
-  } catch (error) {
-    console.warn(`Could not load ${collection}:`, error);
-
-    return [];
-  }
+  return response.documents as unknown as Document[];
 }
 
 function buildMonthlyTrend(payments: Document[]): number[] {
@@ -224,28 +255,31 @@ function buildMonthlyTrend(payments: Document[]): number[] {
 
 async function loadFinancialData(): Promise<FinancialData> {
   const [fees, payments, students, users] = await Promise.all([
-    safeList(
+    listCollectionStrict(
       collectionId("fees", process.env.NEXT_PUBLIC_APPWRITE_FEES_COLLECTION_ID),
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         "payments",
         process.env.NEXT_PUBLIC_APPWRITE_PAYMENTS_COLLECTION_ID,
       ),
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         "students",
         process.env.NEXT_PUBLIC_APPWRITE_STUDENTS_COLLECTION_ID,
       ),
     ),
-    safeList(
+    listCollectionStrict(
       collectionId(
         "users",
         process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID,
       ),
     ),
   ]);
+
+  const successfulPayments =
+    payments.filter(isSuccessfulPayment);
 
   const feesById = new Map(fees.map((document) => [document.$id, document]));
 
@@ -289,7 +323,7 @@ async function loadFinancialData(): Promise<FinancialData> {
     0,
   );
 
-  const totalCollected = payments.reduce(
+  const totalCollected = successfulPayments.reduce(
     (sum, payment) => sum + numberValue(payment, ["Amount"]),
     0,
   );
@@ -301,7 +335,7 @@ async function loadFinancialData(): Promise<FinancialData> {
     totalOutstanding: Math.max(0, totalDue - totalCollected),
     collectionRate:
       totalDue > 0 ? Math.min(100, (totalCollected / totalDue) * 100) : 0,
-    monthlyTrend: buildMonthlyTrend(payments),
+    monthlyTrend: buildMonthlyTrend(successfulPayments),
   };
 }
 
@@ -424,9 +458,25 @@ function ToolbarButton({
 }
 
 export default function FinancialAuditDesk() {
-  const [data, setData] = useState<FinancialData>(EMPTY_FINANCIAL_DATA);
+  const {
+    data: cachedData,
+    loading: initialLoading,
+    refreshing,
+    error,
+    refresh,
+  } = usePersistentSectionData<FinancialData>({
+    cacheKey: "admin-financial-audit",
+    version: 1,
+    loader: loadFinancialData,
+  });
 
-  const [loading, setLoading] = useState(true);
+  const data =
+    cachedData ??
+    EMPTY_FINANCIAL_DATA;
+
+  const loading =
+    initialLoading ||
+    refreshing;
 
   const [query, setQuery] = useState("");
 
@@ -446,20 +496,17 @@ export default function FinancialAuditDesk() {
 
   const ledgerSectionRef = useRef<HTMLDivElement | null>(null);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setLedgerRowLimit(DEFAULT_LEDGER_ROW_LIMIT);
+  const reload = useCallback(
+    async () => {
+      setLedgerRowLimit(
+        DEFAULT_LEDGER_ROW_LIMIT,
+      );
 
-    try {
-      setData(await loadFinancialData());
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      await refresh(true);
+    },
+    [refresh],
+  );
 
-  useEffect(() => {
-    void reload();
-  }, [reload]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -566,11 +613,21 @@ export default function FinancialAuditDesk() {
     }
   };
 
+  if (!cachedData) {
+    return (
+      <div className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-600">
+        {error
+          ? "No saved financial data is available. Check the connection and refresh."
+          : "Loading financial records..."}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10 pb-10 text-[#20283f]">
-      {loading && (
-        <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-medium text-blue-800">
-          Loading live financial records...
+      {error && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          Showing saved financial data because the latest refresh failed.
         </div>
       )}
 
@@ -980,20 +1037,21 @@ export default function FinancialAuditDesk() {
 }
 
 export function FinancialAuditSidePanel() {
-  const [alerts, setAlerts] = useState<LedgerRow[]>([]);
+  const {
+    data,
+  } = usePersistentSectionData<FinancialData>({
+    cacheKey: "admin-financial-audit",
+    version: 1,
+    loader: loadFinancialData,
+  });
 
-  useEffect(() => {
-    void loadFinancialData().then((result) => {
-      setAlerts(
-        result.ledger.filter(
-          (row) =>
-            row.status === "Pending" ||
-            row.status === "Flagged" ||
-            row.status === "Overdue",
-        ),
-      );
-    });
-  }, []);
+  const alerts =
+    data?.ledger.filter(
+      (row) =>
+        row.status === "Pending" ||
+        row.status === "Flagged" ||
+        row.status === "Overdue",
+    ) ?? [];
 
   return (
     <div className="pt-2">
