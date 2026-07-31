@@ -1,3 +1,0 @@
-# Add these entries to .gitignore if they are not already present:
-.env.appwrite-seeder
-appwrite-seed-output/
