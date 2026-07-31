@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import {
   AlertTriangle,
@@ -576,7 +576,7 @@ async function loadUserAccountsData(
               : 'User record updated',
           description: `${
             user.fullName
-          } Â· ${user.roleLabel} Â· ${timeAgo(
+          } · ${user.roleLabel} · ${timeAgo(
             user.updatedAt
           )}`,
           tone: isLocked
@@ -1942,7 +1942,7 @@ export default function UserAccountsDesk({
                       key={user.id}
                       value={user.id}
                     >
-                      {user.fullName} â€”{' '}
+                      {user.fullName} —{' '}
                       {user.roleLabel}
                     </option>
                   ))}
@@ -2035,17 +2035,6 @@ export default function UserAccountsDesk({
 }
 
 export function UserAccountsSidePanel() {
-  const [data, setData] =
-    useState<UserAccountsData | null>(
-      null
-    )
-
-  useEffect(() => {
-    void loadUserAccountsData().then(
-      setData
-    )
-  }, [])
-
   const dispatch = (
     eventName: string
   ) => {
@@ -2054,39 +2043,27 @@ export function UserAccountsSidePanel() {
     )
   }
 
-  const accountAlerts = [
+  const notifications = [
     {
       title:
-        'Pending approvals',
+        'Account Review Required',
       description:
-        `${data?.pendingCount ?? 0} account${
-          data?.pendingCount === 1
-            ? ''
-            : 's'
-        } currently require approval.`,
-      Icon: Clock3,
+        'Review pending and restricted accounts before approving access.',
+      Icon: ShieldAlert,
     },
     {
       title:
-        'Restricted accounts',
+        'Role Assignment Check',
       description:
-        `${data?.lockedCount ?? 0} account${
-          data?.lockedCount === 1
-            ? ''
-            : 's'
-        } currently have restricted access.`,
-      Icon: LockKeyhole,
+        'Confirm every user has a matching role-specific profile.',
+      Icon: Users,
     },
     {
       title:
-        'Active accounts',
+        'Security Log Source',
       description:
-        `${data?.activeCount ?? 0} account${
-          data?.activeCount === 1
-            ? ''
-            : 's'
-        } are currently active.`,
-      Icon: UserCheck,
+        'Failed-login and blocked-IP telemetry is not connected yet.',
+      Icon: KeyRound,
     },
   ]
 
@@ -2097,7 +2074,7 @@ export function UserAccountsSidePanel() {
       </h3>
 
       <div className="space-y-4 border-t border-white/10 pt-4">
-        {accountAlerts.map(
+        {notifications.map(
           ({
             title,
             description,

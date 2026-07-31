@@ -71,19 +71,68 @@ import FinancialAuditDesk, {
 
 import UserAccountsDesk, {
   UserAccountsSidePanel,
-} from '@/components/dashboard/user-accounts/UserAccountsDesk'
-
-import {
-  GlobalConfigLiveSidePanel,
-  GlobalConfigLiveWorkspace,
-} from '@/components/dashboard/global-config/GlobalConfigLive'
-
-// ============= LEFT PANEL SECTIONS =============
+} from '@/components/dashboard/user-accounts/UserAccountsDesk'// ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
   { id: 'global-config', label: 'Global Configuration', icon: Settings },
   { id: 'financial-audit', label: 'Financial Auditing Desk', icon: SearchIcon },
   { id: 'academic-matrix', label: 'Academic Matrix Setup', icon: Grid },
   { id: 'user-accounts', label: 'User Accounts', icon: Users },
+]
+
+// ============= NOTIFICATIONS =============
+const notifications = [
+  {
+    id: 1,
+    title: 'New applicant registered',
+    description: 'John Doe submitted an application for Form 1',
+    icon: UserPlus,
+    time: '5 minutes ago',
+    type: 'info'
+  },
+  {
+    id: 2,
+    title: 'Payment received',
+    description: 'School fees payment of $500 from Student ID #1234',
+    icon: DollarSign,
+    time: '1 hour ago',
+    type: 'success'
+  },
+  {
+    id: 3,
+    title: 'System Update',
+    description: 'New update available for the school management system',
+    icon: Settings,
+    time: '3 hours ago',
+    type: 'warning'
+  },
+  {
+    id: 4,
+    title: 'Attendance Alert',
+    description: 'Low attendance recorded for Form 4A - 60% today',
+    icon: AlertCircle,
+    time: '5 hours ago',
+    type: 'error'
+  },
+]
+
+// ============= FINANCIAL LEDGER DATA =============
+const financialLedgerData = [
+  { date: '2026-05-15', name: 'Emily Johnson', class: 'Form 5A', invoiceId: 'TUI-2026-1245', amount: '$2,500', status: 'Verified' },
+  { date: '2026-05-14', name: 'Michael Chen', class: 'Form 4B', invoiceId: 'TUI-2026-1244', amount: '$2,200', status: 'Pending' },
+  { date: '2026-05-14', name: 'Sarah Williams', class: 'Form 5C', invoiceId: 'TUI-2026-1243', amount: '$2,500', status: 'Verified' },
+  { date: '2026-05-13', name: 'James Rodriguez', class: 'Form 3A', invoiceId: 'TUI-2026-1242', amount: '$1,800', status: 'Overdue' },
+]
+
+const ledgerStatusStyles: Record<string, string> = {
+  Verified: 'bg-green-100 text-green-700',
+  Pending: 'bg-gray-200 text-gray-600',
+  Overdue: 'bg-red-100 text-red-600',
+}
+
+// ============= RBAC MATRIX DATA =============
+const rbacMatrixData = [
+  { name: 'Dr. Linda Martinez', role: 'TEACHER', email: 'l.martinez@school.edu', classroom: 'Classroom' },
+  { name: 'Robert Taylor', role: 'TEACHER', email: 'r.taylor@school.edu', classroom: 'Classroom' },
 ]
 
 // ============= SCHOOL SETUP FORM =============
@@ -634,6 +683,9 @@ const AdminDashboard = () => {
           className="min-w-[40px] min-h-[40px] flex items-center justify-center -mr-2 text-gray-300 hover:text-white active:bg-white/10 rounded-lg transition-colors touch-manipulation relative"
         >
           <Bell className="w-5 h-5" />
+          {notifications.length > 0 && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          )}
         </button>
       </div>
 
@@ -759,26 +811,133 @@ const AdminDashboard = () => {
 
         {/* FINANCIAL_AUDIT_MIDDLE_SWITCH */}
         {/* USER_ACCOUNTS_MIDDLE_SWITCH */}
-        {/* DATABASE_LIVE_MIDDLE_SWITCH */}
         {activeSection === 'financial-audit' ? (
-          <FinancialAuditDesk />
+          <FinancialAuditDesk
+            schoolId={schoolData?.$id}
+          />
         ) : activeSection === 'user-accounts' ? (
           <UserAccountsDesk
+            schoolId={schoolData?.$id}
             onAddStudent={handleAddStudent}
             onAddTeacher={handleAddTeacher}
             onAddApplicant={handleAddApplicant}
           />
         ) : (
-          <GlobalConfigLiveWorkspace
-            onAddStudent={handleAddStudent}
-            onAddTeacher={handleAddTeacher}
-            onAddApplicant={handleAddApplicant}
-            onAddClass={handleAddClass}
-            onViewStudents={handleViewStudents}
-            onViewTeachers={handleViewTeachers}
-            onViewApplicants={handleViewApplicants}
-            onViewClasses={handleViewClasses}
-          />
+          <>
+        {/* ===== KEY METRICS - 2 Rows x 2 Columns ===== */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          {/* Students Card */}
+          <StatsCard
+            title="Total Enrolled Students"
+            value={studentCount.toLocaleString()}
+            icon={<User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />}
+          >
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddStudent}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewStudents}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
+          </StatsCard>
+          
+          {/* Teachers Card */}
+          <StatsCard
+            title="Total Teachers"
+            value={teacherCount.toLocaleString()}
+            icon={<User className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
+          >
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddTeacher}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewTeachers}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
+          </StatsCard>
+
+          {/* Applicants Card */}
+          <StatsCard
+            title="Total Applicants"
+            value={applicantCount.toLocaleString()}
+            icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />}
+          >
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddApplicant}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewApplicants}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
+          </StatsCard>
+
+          {/* Classes Card */}
+          <StatsCard
+            title="Total Classes"
+            value={classCount.toLocaleString()}
+            icon={<School className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />}
+          >
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddClass}
+                className="flex-1 bg-[#C75712] hover:bg-[#D96A1E] active:bg-[#B84E10] text-white text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Plus className="w-3 h-3" />
+                Add
+              </button>
+              <button
+                onClick={handleViewClasses}
+                className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs sm:text-sm font-medium py-1.5 px-2 rounded-lg transition-colors flex items-center justify-center gap-1 touch-manipulation"
+              >
+                <Eye className="w-3 h-3" />
+                View
+              </button>
+            </div>
+          </StatsCard>
+        </div>
+
+        {/* ===== FINANCIAL LEDGER ===== */}
+        <FinancialLedger
+          data={financialLedgerData}
+          statusStyles={ledgerStatusStyles}
+          onShowAll={handleShowAllLedger}
+        />
+
+        {/* ===== RBAC MATRIX ===== */}
+        <RbacMatrix
+          data={rbacMatrixData}
+          onShowAll={handleShowAllRbac}
+          onEdit={handleRbacEdit}
+        />
+
+          </>
         )}
       </div>
 
@@ -800,13 +959,64 @@ const AdminDashboard = () => {
 
         {/* FINANCIAL_AUDIT_RIGHT_SWITCH */}
         {/* USER_ACCOUNTS_RIGHT_SWITCH */}
-        {/* DATABASE_LIVE_RIGHT_SWITCH */}
         {activeSection === 'financial-audit' ? (
           <FinancialAuditSidePanel />
         ) : activeSection === 'user-accounts' ? (
           <UserAccountsSidePanel />
         ) : (
-          <GlobalConfigLiveSidePanel />
+          <>
+        <h3 className="font-bold text-white mb-3 sm:mb-4 mt-10 lg:mt-8 text-sm sm:text-base">Notifications & Alerts</h3>
+        <div className="space-y-3 sm:space-y-4">
+          {notifications.map((notification) => {
+            const Icon = notification.icon
+            return (
+              <div key={notification.id} className="bg-white/5 rounded-lg p-2.5 sm:p-3 border border-white/10 hover:bg-white/10 transition-colors">
+                <div className="flex items-start gap-2.5 sm:gap-3">
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 ${
+                    notification.type === 'error' ? 'bg-red-500/20 text-red-400' :
+                    notification.type === 'warning' ? 'bg-yellow-500/20 text-yellow-400' :
+                    notification.type === 'success' ? 'bg-green-500/20 text-green-400' :
+                    'bg-blue-500/20 text-blue-400'
+                  }`}>
+                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm font-semibold text-white truncate">
+                      {notification.title}
+                    </p>
+                    <p className="text-[10px] sm:text-xs text-gray-300 mt-1 line-clamp-2">
+                      {notification.description}
+                    </p>
+                    <p className="text-[8px] sm:text-[10px] text-gray-400 mt-1">
+                      {notification.time}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mt-4 sm:mt-6 pt-4 border-t border-white/10 pb-4 lg:pb-0">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex items-center justify-between text-xs sm:text-sm">
+              <span className="text-gray-300">Pending Applications</span>
+              <span className="font-semibold text-white">12</span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-1.5">
+              <div className="bg-yellow-500 h-1.5 rounded-full" style={{ width: '45%' }} />
+            </div>
+            <div className="flex items-center justify-between text-xs sm:text-sm">
+              <span className="text-gray-300">Attendance Today</span>
+              <span className="font-semibold text-white">89%</span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-1.5">
+              <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '89%' }} />
+            </div>
+          </div>
+        </div>
+
+          </>
         )}
       </div>
 
@@ -921,7 +1131,6 @@ const AdminDashboard = () => {
 }
 
 export default AdminDashboard
-
 
 
 

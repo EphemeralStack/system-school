@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import {
   AlertTriangle,
@@ -39,12 +39,47 @@ import {
 
 const INITIAL_DATA: AcademicMatrixData = {
   allocations: [],
-  departmentPerformance: [],
-  gpaSeries: [0],
-  attendance: [0, 0, 0],
-  alerts: [],
+  departmentPerformance: [
+    {
+      label: 'Engineering',
+      value: 70,
+    },
+    {
+      label: 'Physical Edu.',
+      value: 40,
+    },
+    {
+      label: 'Mathematics',
+      value: 80,
+    },
+  ],
+  gpaSeries: [2.4, 2.8, 2.6, 3.2, 3.0, 3.7],
+  attendance: [79, 75, 78],
+  alerts: [
+    {
+      label: 'Unassigned classes',
+      value: 3,
+      tone: 'orange',
+    },
+    {
+      label: 'Low mark alerts',
+      value: 5,
+      tone: 'red',
+    },
+    {
+      label: 'Heavy workloads',
+      value: 2,
+      tone: 'blue',
+    },
+    {
+      label: 'Resource alerts',
+      value: 4,
+      tone: 'green',
+    },
+  ],
   resources: [],
 }
+
 const ALERT_TONES = {
   blue: 'bg-blue-50 text-blue-700 border-blue-100',
   green:
@@ -53,6 +88,37 @@ const ALERT_TONES = {
     'bg-orange-50 text-orange-700 border-orange-100',
   red: 'bg-red-50 text-red-700 border-red-100',
 }
+
+const notifications: AdminWorkspaceNotification[] = [
+  {
+    id: 'n1',
+    title: 'Tuition Payment Overdue',
+    description:
+      '3 accounts have crossed the 30-day arrears threshold. Immediate follow-up required.',
+    tone: 'info',
+  },
+  {
+    id: 'n2',
+    title: 'System AI Flag Raised',
+    description:
+      'New anomaly detected in admissions data. Review flagged entry Form No. 102-2865-214.',
+    tone: 'info',
+  },
+  {
+    id: 'n3',
+    title: 'Upcoming Audit Deadline',
+    description:
+      'Financial auditing desk report due in 5 days. Ensure ledger entries are reconciled.',
+    tone: 'warning',
+  },
+  {
+    id: 'n4',
+    title: 'Access Role Change',
+    description:
+      'James Rodriguez updated to Instructor privileges. Verify classroom assignments.',
+    tone: 'success',
+  },
+]
 
 interface PanelHeaderAction {
   id: string
@@ -377,7 +443,7 @@ function ResourceAllocation({
                   className="mt-5 inline-flex items-center gap-1 text-[8px] text-gray-400 hover:text-gray-700"
                 >
                   show more
-                  <span>â€º</span>
+                  <span>›</span>
                 </button>
               </div>
 
@@ -790,29 +856,13 @@ export default function AcademicMatrixDashboard() {
     },
   ]
 
-  const liveNotifications: AdminWorkspaceNotification[] =
-    data.alerts
-      .filter((alert) => alert.value > 0)
-      .map((alert, index) => ({
-        id: `academic-alert-${index}`,
-        title: alert.label,
-        description: `${alert.value} live database record${
-          alert.value === 1 ? '' : 's'
-        } require attention.`,
-        tone:
-          alert.tone === 'red'
-            ? 'warning'
-            : alert.tone === 'green'
-              ? 'success'
-              : 'info',
-      }))
   return (
     <AdminWorkspaceShell
       title="Academic Matrix Setup"
       activeRoute="academic"
       searchValue={query}
       onSearchChange={setQuery}
-      notifications={liveNotifications}
+      notifications={notifications}
       quickActions={quickActions}
     >
       {loading && (
