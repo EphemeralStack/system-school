@@ -39,3 +39,53 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ==================================================
+# Appwrite private backups, audits and credentials
+# ==================================================
+/appwrite-backups/
+/appwrite-auth-provisioning/
+/appwrite-integrity-audits/
+/appwrite-integrity-repairs/
+
+# Appwrite generated reports
+/appwrite-backend-report.json
+/appwrite-backend-report-*.json
+/*integrity-report*.json
+/*migration-report*.json
+/*seed-report*.json
+/*backup-report*.json
+
+# Temporary Appwrite environment files
+/.env.appwrite-seeder
+/.env.appwrite-backup
+/.env.appwrite-migration
+/.env.appwrite-audit
+/.env.appwrite-repair
+
+# Temporary project scans and exported lists
+/primary-school-occurrences.txt
+/*-occurrences.txt
+/*-scan.txt
+/*-report.txt
+
+# Temporary migration documentation
+/PRIMARY-SCHOOL-CLASS-SEED.md
+/PRIMARY-SCHOOL-EXACT-TOTALS.md
+/TEACHER-CLASS-BACKFILL.md
+
+# Temporary archives created during migrations
+/*.zip
+
+# Temporary extraction folders
+/_primary-school-update-source/
+/teacher-class-column-backfill/
+/seed-20-primary-classes/
+/seed-primary-school-exactly-20/
+/seed-primary-school-exactly-20-primary-fixed/
+
+# Local temporary credentials
+/temporary-credentials.json
+/temporary-credentials.csv
+/**/*temporary-credentials.json
+/**/*temporary-credentials.csv
