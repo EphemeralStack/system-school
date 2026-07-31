@@ -1,472 +1,911 @@
 // components/dashboard/AddApplicantModal.tsx
 'use client'
 
-import { useState } from 'react'
-import { databases, storage } from '@/lib/appwrite/config'
-import { ID } from 'appwrite'
-import { X, Loader2, User, Mail, Phone, School, BookOpen, Calendar, Lock, UserLock, Check, Image as ImageIcon, MapPin, AlertCircle } from 'lucide-react'
+import {
+  useMemo,
+  useState,
+} from 'react'
+import {
+  ID,
+} from 'appwrite'
+import {
+  AlertCircle,
+  BookOpen,
+  Check,
+  Clipboard,
+  Image as ImageIcon,
+  Loader2,
+  Lock,
+  Mail,
+  Phone,
+  User,
+  UserLock,
+  X,
+} from 'lucide-react'
+
+import {
+  storage,
+} from '@/lib/appwrite/config'
+import {
+  provisionUserAsAdmin,
+  type ProvisionUserResult,
+} from '@/lib/admin/provision-user'
 
 interface AddApplicantModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
-  schoolId: string
+
+  /**
+   * Retained temporarily so existing parent components keep compiling.
+   * This application is now single-school, so this value is not used.
+   */
+  schoolId?: string
 }
 
-export const AddApplicantModal = ({ isOpen, onClose, onSuccess, schoolId }: AddApplicantModalProps) => {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    username: '',
-    password: '',
-    confirmPassword: '',
-    levelOrFormApplied: '',
-    applicationNo: '',
-    avatar: '',
-    avatarFileId: '',
-  })
+interface ApplicantFormData {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  temporaryPassword: string
+  confirmPassword: string
+  levelOrFormApplied: string
+  avatar: string
+  avatarFileId: string
+}
 
-  // Get initials from name
-  const getInitials = (firstName: string, lastName: string): string => {
-    return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase()
+const INITIAL_FORM_DATA: ApplicantFormData = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  temporaryPassword: '',
+  confirmPassword: '',
+  levelOrFormApplied: '',
+  avatar: '',
+  avatarFileId: '',
+}
+
+function requireEnvironmentVariable(
+  name: string,
+  value: string | undefined
+): string {
+  const normalized = value?.trim()
+
+  if (!normalized) {
+    throw new Error(
+      `Missing environment variable: ${name}`
+    )
   }
 
-  // Generate consistent color based on name
-  const getInitialsColor = (firstName: string, lastName: string): string => {
-    const colors = [
-      '#3B82F6', '#10B981', '#F59E0B', '#EF4444', 
-      '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
-    ]
-    const name = firstName + lastName
-    let hash = 0
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return normalized
+}
+
+function getBucketId(): string {
+  return requireEnvironmentVariable(
+    'NEXT_PUBLIC_APPWRITE_BUCKET_ID',
+    process.env
+      .NEXT_PUBLIC_APPWRITE_BUCKET_ID
+  )
+}
+
+function getInitials(
+  firstName: string,
+  lastName: string
+): string {
+  return (
+    firstName.charAt(0) +
+    lastName.charAt(0)
+  ).toUpperCase()
+}
+
+function getInitialsColor(
+  firstName: string,
+  lastName: string
+): string {
+  const colors = [
+    '#3B82F6',
+    '#10B981',
+    '#F59E0B',
+    '#EF4444',
+    '#8B5CF6',
+    '#EC4899',
+    '#06B6D4',
+    '#F97316',
+  ]
+
+  const name =
+    `${firstName}${lastName}`
+
+  let hash = 0
+
+  for (
+    let index = 0;
+    index < name.length;
+    index += 1
+  ) {
+    hash =
+      name.charCodeAt(index) +
+      ((hash << 5) - hash)
+  }
+
+  return colors[
+    Math.abs(hash) %
+      colors.length
+  ]
+}
+
+export const AddApplicantModal = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}: AddApplicantModalProps) => {
+  const [loading, setLoading] =
+    useState(false)
+
+  const [
+    uploadingAvatar,
+    setUploadingAvatar,
+  ] = useState(false)
+
+  const [error, setError] =
+    useState('')
+
+  const [
+    avatarPreview,
+    setAvatarPreview,
+  ] = useState<string | null>(
+    null
+  )
+
+  const [
+    formData,
+    setFormData,
+  ] =
+    useState<ApplicantFormData>(
+      INITIAL_FORM_DATA
+    )
+
+  const [
+    createdCredentials,
+    setCreatedCredentials,
+  ] =
+    useState<ProvisionUserResult | null>(
+      null
+    )
+
+  const displayInitials =
+    useMemo(() => {
+      if (
+        !formData.firstName ||
+        !formData.lastName
+      ) {
+        return ''
+      }
+
+      return getInitials(
+        formData.firstName,
+        formData.lastName
+      )
+    }, [
+      formData.firstName,
+      formData.lastName,
+    ])
+
+  const initialsColor =
+    useMemo(() => {
+      if (
+        !formData.firstName ||
+        !formData.lastName
+      ) {
+        return '#F97316'
+      }
+
+      return getInitialsColor(
+        formData.firstName,
+        formData.lastName
+      )
+    }, [
+      formData.firstName,
+      formData.lastName,
+    ])
+
+  const resetModal =
+    (): void => {
+      setFormData(
+        INITIAL_FORM_DATA
+      )
+      setAvatarPreview(null)
+      setCreatedCredentials(null)
+      setError('')
+      setLoading(false)
+      setUploadingAvatar(false)
     }
-    const index = Math.abs(hash) % colors.length
-    return colors[index]
-  }
 
-  const handleAvatarUpload = async () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/png,image/jpeg,image/jpg,image/webp'
+  const closeModal =
+    (): void => {
+      if (
+        loading ||
+        uploadingAvatar
+      ) {
+        return
+      }
 
-    input.onchange = async (e: Event) => {
-      const file = (e.target as HTMLInputElement).files?.[0]
-      if (!file) return
+      resetModal()
+      onClose()
+    }
+
+  const deleteAvatarSilently =
+    async (
+      avatarFileId: string
+    ): Promise<void> => {
+      if (!avatarFileId) {
+        return
+      }
 
       try {
-        setUploadingAvatar(true)
-        setError('')
-
-        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
-        if (!allowedTypes.includes(file.type)) {
-          throw new Error('Only JPG, PNG and WEBP images are allowed.')
-        }
-        if (file.size > 5 * 1024 * 1024) {
-          throw new Error('Avatar must be smaller than 5MB.')
-        }
-
-        const uploadedFile = await storage.createFile(
-          process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!,
-          ID.unique(),
-          file
+        await storage.deleteFile({
+          bucketId: getBucketId(),
+          fileId: avatarFileId,
+        })
+      } catch (caughtError) {
+        console.warn(
+          'Unable to remove uploaded avatar:',
+          caughtError
         )
-
-        const previewUrl = storage
-          .getFileView(process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID!, uploadedFile.$id)
-          .toString()
-
-        setFormData((prev) => ({
-          ...prev,
-          avatar: previewUrl,
-          avatarFileId: uploadedFile.$id,
-        }))
-        setAvatarPreview(previewUrl)
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to upload avatar')
-      } finally {
-        setUploadingAvatar(false)
       }
     }
-    input.click()
-  }
 
-  const removeAvatar = () => {
-    setFormData((prev) => ({
-      ...prev,
-      avatar: '',
-      avatarFileId: '',
-    }))
-    setAvatarPreview(null)
-  }
+  const handleAvatarUpload =
+    (): void => {
+      const input =
+        document.createElement(
+          'input'
+        )
 
-  // Generate application number in sequence format
-  const generateApplicationNo = (): string => {
-    const date = new Date()
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-    return `APP-${year}${month}${day}-${random}`
-  }
+      input.type = 'file'
+      input.accept =
+        'image/png,image/jpeg,image/jpg,image/webp'
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+      input.onchange =
+        async (
+          event: Event
+        ): Promise<void> => {
+          const file =
+            (
+              event.target as
+                HTMLInputElement
+            ).files?.[0]
 
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match!')
-      return
-    }
+          if (!file) {
+            return
+          }
 
-    // Validate password length
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters')
-      return
-    }
+          try {
+            setUploadingAvatar(true)
+            setError('')
 
-    // Validate required fields
-    if (!formData.firstName || !formData.lastName || !formData.email || 
-        !formData.username || !formData.password) {
-      setError('Please fill in all required fields')
-      return
-    }
+            const allowedTypes =
+              new Set([
+                'image/png',
+                'image/jpeg',
+                'image/jpg',
+                'image/webp',
+              ])
 
-    setLoading(true)
+            if (
+              !allowedTypes.has(
+                file.type
+              )
+            ) {
+              throw new Error(
+                'Only JPG, PNG and WEBP images are allowed.'
+              )
+            }
 
-    try {
-      // Generate application number if not manually provided
-      const applicationNo = formData.applicationNo || generateApplicationNo()
+            if (
+              file.size >
+              5 * 1024 * 1024
+            ) {
+              throw new Error(
+                'Avatar must be smaller than 5MB.'
+              )
+            }
 
-      // 1. Create user in USERS collection
-      const userDoc = await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_USERS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          FirstName: formData.firstName,
-          LastName: formData.lastName,
-          Email: formData.email,
-          Phone: formData.phone || '',
-          Role: 'applicant',
-          avatar: formData.avatar || '',
+            if (
+              formData.avatarFileId
+            ) {
+              await deleteAvatarSilently(
+                formData.avatarFileId
+              )
+            }
+
+            const uploadedFile =
+              await storage.createFile({
+                bucketId:
+                  getBucketId(),
+                fileId:
+                  ID.unique(),
+                file,
+              })
+
+            const previewUrl =
+              storage
+                .getFileView({
+                  bucketId:
+                    getBucketId(),
+                  fileId:
+                    uploadedFile.$id,
+                })
+                .toString()
+
+            setFormData(
+              (previous) => ({
+                ...previous,
+                avatar:
+                  previewUrl,
+                avatarFileId:
+                  uploadedFile.$id,
+              })
+            )
+
+            setAvatarPreview(
+              previewUrl
+            )
+          } catch (caughtError) {
+            setError(
+              caughtError instanceof
+                Error
+                ? caughtError.message
+                : 'Failed to upload avatar.'
+            )
+          } finally {
+            setUploadingAvatar(
+              false
+            )
+          }
         }
+
+      input.click()
+    }
+
+  const removeAvatar =
+    async (): Promise<void> => {
+      const avatarFileId =
+        formData.avatarFileId
+
+      setFormData(
+        (previous) => ({
+          ...previous,
+          avatar: '',
+          avatarFileId: '',
+        })
       )
 
-      // 2. Create applicant document with only the specified fields
-      await databases.createDocument(
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-        process.env.NEXT_PUBLIC_APPWRITE_APPLICANTS_COLLECTION_ID!,
-        ID.unique(),
-        {
-          userId: userDoc.$id,
-          ApplicationNo: applicationNo,
-          LevelOrFormApplied: formData.levelOrFormApplied || '',
-          Status: 'pending', // Auto-set to pending
-        }
-      )
-
-      onSuccess()
-      onClose()
-      // Reset form
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        username: '',
-        password: '',
-        confirmPassword: '',
-        levelOrFormApplied: '',
-        applicationNo: '',
-        avatar: '',
-        avatarFileId: '',
-      })
       setAvatarPreview(null)
-    } catch (error) {
-      console.error('Error adding applicant:', error)
-      setError(error instanceof Error ? error.message : 'Failed to add applicant')
-    } finally {
-      setLoading(false)
+
+      await deleteAvatarSilently(
+        avatarFileId
+      )
     }
+
+  const handleSubmit =
+    async (
+      event:
+        React.FormEvent<HTMLFormElement>
+    ): Promise<void> => {
+      event.preventDefault()
+      setError('')
+
+      if (
+        !formData.firstName.trim() ||
+        !formData.lastName.trim() ||
+        !formData.email.trim() ||
+        !formData.levelOrFormApplied.trim()
+      ) {
+        setError(
+          'Complete all required fields.'
+        )
+        return
+      }
+
+      if (
+        formData.temporaryPassword &&
+        formData.temporaryPassword
+          .length < 12
+      ) {
+        setError(
+          'Temporary password must contain at least 12 characters.'
+        )
+        return
+      }
+
+      if (
+        formData.temporaryPassword !==
+        formData.confirmPassword
+      ) {
+        setError(
+          'Passwords do not match.'
+        )
+        return
+      }
+
+      setLoading(true)
+
+      try {
+        const result =
+          await provisionUserAsAdmin({
+            role: 'applicant',
+            firstName:
+              formData.firstName.trim(),
+            lastName:
+              formData.lastName.trim(),
+            email:
+              formData.email
+                .trim()
+                .toLowerCase(),
+            phone:
+              formData.phone.trim(),
+            avatar:
+              formData.avatar,
+            temporaryPassword:
+              formData
+                .temporaryPassword ||
+              undefined,
+            levelOrFormApplied:
+              formData.levelOrFormApplied.trim(),
+            status: 'pending',
+          })
+
+        setCreatedCredentials(
+          result
+        )
+
+        onSuccess()
+      } catch (caughtError) {
+        console.error(
+          'Error adding applicant:',
+          caughtError
+        )
+
+        setError(
+          caughtError instanceof Error
+            ? caughtError.message
+            : 'Failed to add applicant.'
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+  const copyCredentials =
+    async (): Promise<void> => {
+      if (!createdCredentials) {
+        return
+      }
+
+      const credentialText = [
+        `Email: ${createdCredentials.email}`,
+        `Temporary password: ${createdCredentials.temporaryPassword}`,
+      ].join('\n')
+
+      try {
+        await navigator.clipboard.writeText(
+          credentialText
+        )
+      } catch {
+        setError(
+          'Clipboard access failed. Copy the credentials manually.'
+        )
+      }
+    }
+
+  if (!isOpen) {
+    return null
   }
-
-  if (!isOpen) return null
-
-  const displayInitials = formData.firstName && formData.lastName 
-    ? getInitials(formData.firstName, formData.lastName) 
-    : ''
-  const initialsColor = formData.firstName && formData.lastName 
-    ? getInitialsColor(formData.firstName, formData.lastName) 
-    : '#F97316'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4">
-      <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto border-2 border-gray-300">
-        <div className="sticky top-0 bg-white border-b-2 border-gray-300 px-6 py-4 flex justify-between items-center z-10">
-          <h2 className="text-xl font-bold text-gray-800">Add New Applicant</h2>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-2xl border-2 border-gray-300 bg-white sm:max-h-[90vh]">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-gray-300 bg-white px-6 py-4">
+          <h2 className="text-xl font-bold text-gray-800">
+            {createdCredentials
+              ? 'Applicant Account Created'
+              : 'Add New Applicant'}
+          </h2>
+
           <button
-            onClick={onClose}
+            type="button"
+            onClick={closeModal}
+            disabled={
+              loading ||
+              uploadingAvatar
+            }
             aria-label="Close"
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
+            className="rounded-lg border-2 border-gray-300 p-2 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <X className="w-5 h-5 text-red-500" />
+            <X className="h-5 w-5 text-red-500" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 border-l-4 border-red-500 rounded-lg text-red-700 text-sm flex items-center gap-2 border-2 border-red-200">
-            <AlertCircle className="w-4 h-4" />
+          <div className="mx-6 mt-4 flex items-center gap-2 rounded-lg border-2 border-red-200 border-l-4 border-l-red-500 bg-red-50 p-3 text-sm text-red-700">
+            <AlertCircle className="h-4 w-4 shrink-0" />
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="First Name"
-                />
+        {createdCredentials ? (
+          <div className="space-y-5 p-6">
+            <div className="rounded-xl border-2 border-green-200 bg-green-50 p-5">
+              <div className="mb-3 flex items-center gap-2 text-green-800">
+                <Check className="h-5 w-5" />
+                <p className="font-semibold">
+                  The Auth account and applicant profile were created successfully.
+                </p>
+              </div>
+
+              <p className="mb-4 text-sm text-green-700">
+                The application number was generated securely on the server.
+              </p>
+
+              <div className="space-y-3 rounded-lg border border-green-200 bg-white p-4">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Email
+                  </p>
+                  <p className="break-all font-medium text-gray-900">
+                    {createdCredentials.email}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    Temporary password
+                  </p>
+                  <p className="break-all font-mono font-semibold text-gray-900">
+                    {
+                      createdCredentials.temporaryPassword
+                    }
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Last Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Last Name"
-                />
-              </div>
-            </div>
+            <div className="flex justify-end gap-3 border-t-2 border-gray-300 pt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  void copyCredentials()
+                }}
+                className="flex items-center gap-2 rounded-lg border-2 border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                <Clipboard className="h-4 w-4" />
+                Copy Credentials
+              </button>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Email Address"
-                />
-              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-lg border-2 border-[#C75712] bg-[#C75712] px-6 py-2 text-white transition-colors hover:bg-[#D96A1E]"
+              >
+                Done
+              </button>
             </div>
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4 p-6"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  First Name *
+                </label>
 
-            {/* Phone */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Phone Number"
-                />
-              </div>
-            </div>
-
-            {/* Username */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s/g, '') })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Username"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Password (min. 8 chars)"
-                />
-              </div>
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
-              <div className="relative">
-                <UserLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="Confirm Password"
-                />
-              </div>
-            </div>
-
-            {/* Level or Form Applied */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Level or Form Applied</label>
-              <div className="relative">
-                <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <select
-                  value={formData.levelOrFormApplied}
-                  onChange={(e) => setFormData({ ...formData, levelOrFormApplied: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712] appearance-none"
-                >
-                  <option value="" className="text-blue-950">Select Level/Form</option>
-                  <option value="Form 1" className="text-blue-950">Form 1</option>
-                  <option value="Form 2" className="text-blue-950">Form 2</option>
-                  <option value="Form 3" className="text-blue-950">Form 3</option>
-                  <option value="Form 4" className="text-blue-950">Form 4</option>
-                  <option value="Form 5" className="text-blue-950">Form 5</option>
-                  <option value="Form 6" className="text-blue-950">Form 6</option>
-                  <option value="Lower Six" className="text-blue-950">Lower Six</option>
-                  <option value="Upper Six" className="text-blue-950">Upper Six</option>
-                  <option value="O-Level" className="text-blue-950">O-Level</option>
-                  <option value="A-Level" className="text-blue-950">A-Level</option>
-                  <option value="Primary" className="text-blue-950">Primary</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Application Number & Avatar */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Application Number</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={formData.applicationNo}
-                  onChange={(e) => setFormData({ ...formData, applicationNo: e.target.value })}
-                  className="w-full text-blue-950 pl-10 pr-4 py-2.5 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#C75712] focus:border-[#C75712]"
-                  placeholder="APP-20260101-XXXX (auto-generates)"
-                />
-              </div>
-              <p className="text-[10px] text-gray-400 mt-1">Leave empty to auto-generate</p>
-            </div>
-
-            {/* Avatar - Now in the same row as Application Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Avatar</label>
-              <div className="flex items-center gap-3">
                 <div className="relative">
-                  <button
-                    type="button"
-                    onClick={handleAvatarUpload}
-                    disabled={uploadingAvatar}
-                    className="cursor-pointer"
-                  >
-                    <div className="w-12 h-12 rounded-full border-2 border-dashed border-gray-300 hover:border-[#C75712] transition-colors duration-300 flex items-center justify-center overflow-hidden bg-gray-50 group">
-                      {uploadingAvatar ? (
-                        <div className="w-5 h-5 border-2 border-[#C75712] border-t-transparent rounded-full animate-spin" />
-                      ) : avatarPreview ? (
-                        <img 
-                          src={avatarPreview} 
-                          alt="Avatar preview" 
-                          className="w-full h-full object-cover"
-                        />
-                      ) : formData.firstName && formData.lastName ? (
-                        <div 
-                          className="w-full h-full flex items-center justify-center text-sm font-bold text-white"
-                          style={{ backgroundColor: initialsColor }}
-                        >
-                          {displayInitials}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center">
-                          <ImageIcon className="w-4 h-4 text-gray-400 group-hover:text-[#C75712] transition-colors" />
-                          <span className="text-[6px] text-center text-gray-400 block mt-0.5">Photo</span>
-                        </div>
-                      )}
-                    </div>
-                  </button>
-                  {avatarPreview && (
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          firstName:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="First name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Last Name *
+                </label>
+
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          lastName:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Email *
+                </label>
+
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="email"
+                    required
+                    value={formData.email}
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          email:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="Email address"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Phone
+                </label>
+
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          phone:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="Phone number"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Temporary Password
+                </label>
+
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="password"
+                    minLength={12}
+                    value={formData.temporaryPassword}
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          temporaryPassword:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="Leave blank to generate"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+
+                <div className="relative">
+                  <UserLock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="password"
+                    minLength={12}
+                    value={formData.confirmPassword}
+                    disabled={
+                      !formData.temporaryPassword
+                    }
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          confirmPassword:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712] disabled:bg-gray-100"
+                    placeholder="Repeat temporary password"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Level or Form Applied *
+                </label>
+
+                <div className="relative">
+                  <BookOpen className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type="text"
+                    required
+                    value={
+                      formData.levelOrFormApplied
+                    }
+                    onChange={(event) =>
+                      setFormData(
+                        (previous) => ({
+                          ...previous,
+                          levelOrFormApplied:
+                            event.target.value,
+                        })
+                      )
+                    }
+                    className="w-full rounded-lg border-2 border-gray-300 py-2.5 pl-10 pr-4 text-blue-950 focus:border-[#C75712] focus:outline-none focus:ring-2 focus:ring-[#C75712]"
+                    placeholder="e.g. Grade 5 or Form 1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Avatar
+                </label>
+
+                <div className="flex items-center gap-3">
+                  <div className="relative">
                     <button
                       type="button"
-                      onClick={removeAvatar}
-                      className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full p-0.5 hover:bg-red-600 transition shadow-sm"
+                      onClick={handleAvatarUpload}
+                      disabled={uploadingAvatar}
+                      className="cursor-pointer disabled:cursor-not-allowed"
                     >
-                      <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <div className="group flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-gray-300 bg-gray-50 transition-colors hover:border-[#C75712]">
+                        {uploadingAvatar ? (
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#C75712] border-t-transparent" />
+                        ) : avatarPreview ? (
+                          <img
+                            src={avatarPreview}
+                            alt="Avatar preview"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : formData.firstName &&
+                          formData.lastName ? (
+                          <div
+                            className="flex h-full w-full items-center justify-center text-sm font-bold text-white"
+                            style={{
+                              backgroundColor:
+                                initialsColor,
+                            }}
+                          >
+                            {displayInitials}
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center justify-center">
+                            <ImageIcon className="h-4 w-4 text-gray-400 transition-colors group-hover:text-[#C75712]" />
+                            <span className="mt-0.5 block text-center text-[6px] text-gray-400">
+                              Photo
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </button>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500">Upload photo</p>
-                  <p className="text-[10px] text-gray-400">PNG, JPG, WEBP</p>
+
+                    {avatarPreview && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void removeAvatar()
+                        }}
+                        aria-label="Remove avatar"
+                        className="absolute -right-1.5 -top-1.5 rounded-full bg-red-500 p-0.5 shadow-sm transition hover:bg-red-600"
+                      >
+                        <X className="h-2.5 w-2.5 text-white" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500">
+                      Upload photo
+                    </p>
+                    <p className="text-[10px] text-gray-400">
+                      PNG, JPG or WEBP
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t-2 border-gray-300">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors border-2 border-gray-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading || uploadingAvatar}
-              className="px-6 py-2 bg-[#C75712] hover:bg-[#D96A1E] text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 border-2 border-[#C75712]"
-            >
-              {loading || uploadingAvatar ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {uploadingAvatar ? 'Uploading...' : 'Adding...'}
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4" />
-                  Add Applicant
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+            <p className="text-xs text-gray-500">
+              Leave the password fields blank to let the server generate a strong temporary password.
+            </p>
+
+            <div className="flex justify-end gap-3 border-t-2 border-gray-300 pt-4">
+              <button
+                type="button"
+                onClick={closeModal}
+                disabled={
+                  loading ||
+                  uploadingAvatar
+                }
+                className="rounded-lg border-2 border-gray-300 px-4 py-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  uploadingAvatar
+                }
+                className="flex items-center gap-2 rounded-lg border-2 border-[#C75712] bg-[#C75712] px-6 py-2 text-white transition-colors hover:bg-[#D96A1E] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {loading ||
+                uploadingAvatar ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {uploadingAvatar
+                      ? 'Uploading...'
+                      : 'Creating...'}
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Add Applicant
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   )
