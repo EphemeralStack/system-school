@@ -85,7 +85,7 @@ const Homepage = () => {
       borderColor: 'border-blue-200',
       iconColor: 'text-blue-600',
       gradient: 'from-blue-500 to-indigo-600',
-      href: '/admin/signUp'
+      href: '/admin/signIn'
     },
     {
       id: 'teacher',
@@ -104,7 +104,7 @@ const Homepage = () => {
       borderColor: 'border-green-200',
       iconColor: 'text-green-600',
       gradient: 'from-green-500 to-emerald-600',
-      href: '/teacher/signUp'
+      href: '/teacher/signIn'
     },
     {
       id: 'applicant',
@@ -123,7 +123,7 @@ const Homepage = () => {
       borderColor: 'border-purple-200',
       iconColor: 'text-purple-600',
       gradient: 'from-purple-500 to-violet-600',
-      href: '/applicant/signUp'
+      href: '/applicant/signIn'
     },
     {
       id: 'student',
@@ -142,7 +142,7 @@ const Homepage = () => {
       borderColor: 'border-orange-200',
       iconColor: 'text-orange-600',
       gradient: 'from-orange-500 to-amber-600',
-      href: '/student/signUp'
+      href: '/student/signIn'
     }
   ]
 
