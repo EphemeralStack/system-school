@@ -568,7 +568,7 @@ async function loadUserAccountsData(
               : 'User record updated',
           description: `${
             user.fullName
-          } Â· ${user.roleLabel} Â· ${timeAgo(
+          } · ${user.roleLabel} · ${timeAgo(
             user.updatedAt
           )}`,
           tone: isLocked
@@ -1394,7 +1394,7 @@ export default function UserAccountsDesk({
                             | UserRole
                         )
                       }
-                      className="h-8 appearance-none rounded-md border border-gray-300 bg-white pl-3 pr-8 text-[10px] outline-none focus:border-[#0867ce]"
+                      className="h-8 appearance-none rounded-md border border-gray-300 bg-white pl-3 pr-8 text-[10px] text-[#20283f] [color-scheme:light] outline-none focus:border-[#0867ce] [&>option]:bg-white [&>option]:text-[#20283f]"
                     >
                       <option value="all">
                         All roles
@@ -1593,7 +1593,7 @@ export default function UserAccountsDesk({
               )}
             </div>
 
-            <div className="border-t border-gray-200 p-4 lg:border-l lg:border-t-0">
+            <div className="border-t border-slate-200 bg-[#eef2f6] p-4 lg:border-l lg:border-t-0">
               <div className="space-y-3">
                 <ActionButton
                   label="Export Data"
@@ -1751,7 +1751,7 @@ export default function UserAccountsDesk({
               </div>
             </div>
 
-            <div className="border-t border-gray-200 p-4 lg:border-l lg:border-t-0">
+            <div className="border-t border-slate-200 bg-[#eef2f6] p-4 lg:border-l lg:border-t-0">
               <div className="space-y-3">
                 <ActionButton
                   label="Add User"
@@ -1941,7 +1941,7 @@ export default function UserAccountsDesk({
                       )
                     }
                   }}
-                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-[#0867ce]"
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-[#20283f] [color-scheme:light] outline-none focus:border-[#0867ce] [&>option]:bg-white [&>option]:text-[#20283f]"
                 >
                   <option value="">
                     Select user
@@ -1953,7 +1953,7 @@ export default function UserAccountsDesk({
                       key={user.id}
                       value={user.id}
                     >
-                      {user.fullName} â€”{' '}
+                      {user.fullName} —{' '}
                       {user.roleLabel}
                     </option>
                   ))}
@@ -1974,7 +1974,7 @@ export default function UserAccountsDesk({
                           .value as UserRole
                       )
                     }
-                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm outline-none focus:border-[#0867ce]"
+                    className="h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-[#20283f] [color-scheme:light] outline-none focus:border-[#0867ce] [&>option]:bg-white [&>option]:text-[#20283f]"
                   >
                     <option value="admin">
                       Admin
