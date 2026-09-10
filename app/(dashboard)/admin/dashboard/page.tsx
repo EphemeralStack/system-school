@@ -80,9 +80,9 @@ import {
 
 // ============= LEFT PANEL SECTIONS =============
 const LEFT_SECTIONS = [
-  { id: 'global-config', label: 'Global Configuration', icon: Settings },
-  { id: 'financial-audit', label: 'Financial Auditing Desk', icon: SearchIcon },
-  { id: 'academic-matrix', label: 'Academic Matrix Setup', icon: Grid },
+  { id: 'global-config', label: 'Dashboard', icon: Settings },
+  { id: 'financial-audit', label: 'Financial Audit', icon: SearchIcon },
+  { id: 'academic-matrix', label: 'Academic Matrix', icon: Grid },
   { id: 'user-accounts', label: 'User Accounts', icon: Users },
 ]
 
@@ -644,9 +644,9 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-[#E9E9E9] flex flex-col lg:flex-row">
+    <div className="min-h-[100dvh] bg-[#f3f4f2] flex flex-col lg:flex-row">
       {/* ===== MOBILE / TABLET HEADER ===== */}
-      <div className="lg:hidden bg-[#232A42] text-white px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-30 safe-top">
+      <div className="lg:hidden bg-[#20283f] text-white px-3 sm:px-4 py-3 flex items-center justify-between sticky top-0 z-30 safe-top border-b border-white/[0.07] shadow-sm">
         <button
           onClick={() => setIsLeftPanelOpen(true)}
           aria-label="Open navigation menu"
@@ -666,8 +666,8 @@ const AdminDashboard = () => {
 
       {/* ===== LEFT PANEL ===== */}
       <div className={`
-        lg:w-[220px] xl:w-[240px] lg:shrink-0 lg:min-h-[100dvh] lg:relative lg:flex lg:flex-col lg:translate-x-0
-        fixed inset-y-0 left-0 z-40 w-[82%] max-w-[300px] sm:w-72 bg-[#232A42] text-white p-4 flex flex-col
+        lg:w-[240px] lg:shrink-0 lg:min-h-[100dvh] lg:relative lg:flex lg:flex-col lg:translate-x-0
+        fixed inset-y-0 left-0 z-40 w-[84%] max-w-[310px] sm:w-72 bg-[#20283f] text-white p-4 flex flex-col border-r border-white/[0.06]
         transition-transform duration-300 ease-in-out overflow-y-auto
         ${isLeftPanelOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -679,28 +679,23 @@ const AdminDashboard = () => {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="mb-6 mt-1 lg:mt-6">
-          <span className="font-bold text-white">Navigator</span>
-        </div>
-
-        <div className="bg-[#D9D9D9]/15 rounded-lg p-2 mb-6">
-          <div className="flex justify-between items-center">
-            <div className="p-2 rounded-lg bg-[#2C3553] text-white">
-              <Home className="w-5 h-5" />
+        <div className="mb-7 mt-1 lg:mt-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#C75712] flex items-center justify-center shadow-lg shadow-black/10">
+              <School className="w-5 h-5 text-white" />
             </div>
-            <div className="p-2 rounded-lg text-gray-400">
-              <BarChart3 className="w-5 h-5" />
-            </div>
-            <div className="p-2 rounded-lg text-gray-400">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div className="p-2 rounded-lg text-gray-400">
-              <Settings className="w-5 h-5" />
+            <div className="min-w-0">
+              <div className="text-[15px] font-bold tracking-tight text-white">StarLight</div>
+              <div className="mt-0.5 text-[10px] text-slate-400">Admin Workspace</div>
             </div>
           </div>
         </div>
 
-        <div className="space-y-1.5 sm:space-y-8">
+        <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] font-semibold text-slate-500">
+          Workspace
+        </div>
+
+        <div className="space-y-1.5">
           {LEFT_SECTIONS.map((section) => {
             const Icon = section.icon
             const isActive = activeSection === section.id
@@ -724,10 +719,10 @@ const AdminDashboard = () => {
                   )
                 }}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 text-xs sm:text-sm touch-manipulation
+                  relative w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-xs sm:text-sm touch-manipulation
                   ${isActive 
-                    ? 'bg-[#D9D9D9]/15 text-white' 
-                    : 'text-gray-400 hover:text-white hover:bg-[#D9D9D9]/10 active:bg-[#D9D9D9]/20'
+                    ? 'bg-white/[0.10] text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.06] active:bg-white/[0.10]'
                   }
                 `}
               >
@@ -740,29 +735,33 @@ const AdminDashboard = () => {
       </div>
 
       {/* ===== MID SECTION ===== */}
-      <div className="flex-1 min-w-0 p-3 bg-[#F5F5F2] sm:p-4 md:p-5 lg:p-6 overflow-y-auto lg:h-[100dvh]">
-        <div className="relative mb-4 sm:mb-6 lg:mb-8 flex justify-center">
-          <div className="bg-[#D9D9D9] rounded-b-lg px-3 sm:px-4 py-1.5 sm:py-2 inline-block max-w-full">
-            <h2 className="text-[#232A42] font-bold text-xs sm:text-sm lg:text-base truncate">
-              {LEFT_SECTIONS.find((s) => s.id === activeSection)?.label || 'Dashboard'}
-            </h2>
-          </div>
+      <div className="flex-1 min-w-0 bg-[#f3f4f2] p-4 sm:p-5 md:p-6 lg:p-7 xl:p-8 overflow-y-auto lg:h-[100dvh]">
+        <div className="mb-5 sm:mb-6">
+          <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-slate-400">
+            Administration
+          </p>
+          <h1 className="mt-1 text-xl sm:text-2xl font-bold tracking-tight text-[#20283f]">
+            {LEFT_SECTIONS.find((s) => s.id === activeSection)?.label || 'Dashboard'}
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-slate-500">
+            Monitor and manage your school operations from one workspace.
+          </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="relative w-full sm:max-w-xs">
-            <div className="flex items-center bg-[#D9D9D9] rounded-lg px-3 py-2 sm:py-1.5">
-              <Search className="w-4 h-4 text-gray-500 flex-shrink-0" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-6">
+          <div className="relative w-full sm:max-w-sm">
+            <div className="flex items-center h-11 bg-white rounded-xl px-3.5 border border-slate-200 shadow-sm focus-within:border-[#C75712]/50 focus-within:ring-4 focus-within:ring-[#C75712]/10 transition">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input
                 type="text"
                 placeholder="Search"
-                className="bg-transparent text-gray-700 placeholder-gray-500 text-sm pl-2 pr-4 py-1 focus:outline-none w-full min-w-0"
+                className="bg-transparent text-slate-800 placeholder-slate-400 text-sm pl-2.5 pr-4 py-1 focus:outline-none w-full min-w-0"
               />
             </div>
           </div>
-          <div className="mt-auto pt-4 border-t border-white/10">
-          <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/5 transition-colors">
-            <div className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-[#2C3553] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
+          <div>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <div className="w-9 h-9 rounded-xl bg-[#315b80] flex items-center justify-center text-white font-bold text-xs overflow-hidden flex-shrink-0">
               {getAvatarUrl() ? (
                 <img src={getAvatarUrl()!} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -770,12 +769,12 @@ const AdminDashboard = () => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-blue-950 truncate">{getFullName()}</div>
-              <div className="text-xs text-gray-600 truncate">{getRoleDisplay()}</div>
+              <div className="text-xs font-semibold text-[#20283f] truncate">{getFullName()}</div>
+              <div className="mt-0.5 text-[10px] text-slate-400 truncate">{getRoleDisplay()}</div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:text-[#C75712] hover:bg-slate-50 transition-colors"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -811,9 +810,9 @@ const AdminDashboard = () => {
 
       {/* ===== RIGHT PANEL ===== */}
       <div className={`
-        lg:w-[260px] xl:w-[280px] lg:shrink-0 lg:min-h-[100dvh] lg:relative lg:block lg:translate-x-0
+        lg:w-[285px] lg:shrink-0 lg:min-h-[100dvh] lg:relative lg:block lg:translate-x-0
         lg:sticky lg:top-0 lg:h-[100dvh]
-        fixed inset-y-0 right-0 z-40 w-[82%] max-w-[320px] sm:w-80 bg-[#232A42] text-white p-4 border-l border-white/10
+        fixed inset-y-0 right-0 z-40 w-[84%] max-w-[330px] sm:w-80 bg-[#20283f] text-white p-4 border-l border-white/[0.07]
         transition-transform duration-300 ease-in-out overflow-y-auto
         ${isRightPanelOpen ? 'translate-x-0' : 'translate-x-full'}
       `}>
